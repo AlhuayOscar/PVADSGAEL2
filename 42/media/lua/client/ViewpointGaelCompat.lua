@@ -10,6 +10,7 @@ local installedCrosshair = false
 local installedArchery = false
 local installedLauncherAim = false
 local installedLauncherPreview = false
+local installedTracerPreview = false
 local warned = false
 local originalLauncherPreviewActive
 
@@ -125,6 +126,30 @@ local function installLauncherPreview()
     end
     installedLauncherPreview = true
     print("[ViewpointGael] isometric launcher preview hidden in Viewpoint modes")
+    return true
+end
+
+-- Gael's shared tracer overlay has a second preview path for underbarrel
+-- launchers. Hide only its predicted arc while Viewpoint owns the camera aim;
+-- keep live projectile trails visible after firing.
+local function installTracerPreviewFilter()
+    local tracer = rawget(_G, "GGS_LauncherTracer")
+    local panel = tracer and tracer.panel
+    if not panel then return false end
+    if panel.__viewpointPreviewFilter then
+        installedTracerPreview = true
+        return true
+    end
+    local drawPreview = panel.preview
+    if type(drawPreview) ~= "function" then return false end
+    panel.preview = function(self, state)
+        local playerObj = getPlayer and getPlayer() or nil
+        if playerObj and GGS_ViewpointLauncherMode.active(playerObj) then return end
+        return drawPreview(self, state)
+    end
+    panel.__viewpointPreviewFilter = true
+    installedTracerPreview = true
+    print("[ViewpointGael] predicted launcher arc hidden in Viewpoint modes")
     return true
 end
 
@@ -349,11 +374,13 @@ local function install()
     installArchery()
     installLauncherAim()
     installLauncherPreview()
+    installTracerPreviewFilter()
 end
 
 local function tick()
     install()
-    if installedCrosshair and installedArchery and installedLauncherAim and installedLauncherPreview then
+    if installedCrosshair and installedArchery and installedLauncherAim
+        and installedLauncherPreview and installedTracerPreview then
         Events.OnTick.Remove(tick)
     end
 end
