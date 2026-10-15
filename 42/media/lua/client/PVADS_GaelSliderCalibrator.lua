@@ -120,6 +120,8 @@ local function replaceWeaponPart(player, weapon, fullType, partType)
     end
     player:getInventory():Remove(part)
     if syncHandWeaponFields then pcall(syncHandWeaponFields, player, weapon) end
+    if player.resetEquippedHandsModels then pcall(player.resetEquippedHandsModels, player) end
+    if player.resetModelNextFrame then pcall(player.resetModelNextFrame, player) end
     return true
 end
 
@@ -530,6 +532,8 @@ function PVADSGaelSliderWindow:applyAttachmentSelection()
             weapon:detachWeaponPart(player, currentPart)
             player:getInventory():AddItem(currentPart)
             if syncHandWeaponFields then pcall(syncHandWeaponFields, player, weapon) end
+            if player.resetEquippedHandsModels then pcall(player.resetEquippedHandsModels, player) end
+            if player.resetModelNextFrame then pcall(player.resetModelNextFrame, player) end
         end
     end
     local installed = weapon:getWeaponPart("Scope")
