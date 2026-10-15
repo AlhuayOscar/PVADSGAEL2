@@ -11,8 +11,10 @@ local installedArchery = false
 local installedLauncherAim = false
 local installedLauncherPreview = false
 local installedTracerPreview = false
+local installedLauncherImpactTarget = false
 local warned = false
 local originalLauncherPreviewActive
+local originalLauncherImpactResolver
 
 local function api()
     local root = rawget(_G, "ViewpointGael")
@@ -30,7 +32,15 @@ end
 GGS_ViewpointLauncherMode = GGS_ViewpointLauncherMode or {}
 function GGS_ViewpointLauncherMode.active(playerObj)
     if playerObj and playerObj.isLocalPlayer and not playerObj:isLocalPlayer() then return false end
-    return looking()
+    if looking() then return true end
+    -- Third-person Viewpoint can release mouse capture while its camera is still
+    -- active. The launcher profile/aiming guard is checked by the caller.
+    local aim = api()
+    if aim and type(aim.isThirdPerson) == "function" then
+        local ok, thirdPerson = pcall(aim.isThirdPerson)
+        if ok and thirdPerson == true then return true end
+    end
+    return false
 end
 
 function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
@@ -150,6 +160,56 @@ local function installTracerPreviewFilter()
     panel.__viewpointPreviewFilter = true
     installedTracerPreview = true
     print("[ViewpointGael] predicted launcher arc hidden in Viewpoint modes")
+    return true
+end
+
+-- Replace the isometric target right before Gael resolves the standalone
+-- launcher impact. Its resolver still checks intervening walls and schedules
+-- the explosion at the final square.
+local function installLauncherImpactTarget()
+    if installedLauncherImpactTarget then return true end
+    local resolver = rawget(_G, "ggsGLResolveImpactSquare")
+    if type(resolver) ~= "function" then return false end
+    originalLauncherImpactResolver = resolver
+    _G.ggsGLResolveImpactSquare = function(startX, startY, startZ, targetSquare, ...)
+        local playerObj = getPlayer and getPlayer() or nil
+        local activeFn = originalLauncherPreviewActive
+        local active = false
+        if playerObj and type(activeFn) == "function" then
+            local ok, result = pcall(activeFn, playerObj)
+            active = ok and result == true
+        end
+        if active and GGS_ViewpointLauncherMode.active(playerObj) then
+            local tx, ty, tz = GGS_ViewpointLauncherMode.target(playerObj, 24)
+            if tx and ty then
+                local dx, dy = tx - startX, ty - startY
+                local distance = math.sqrt(dx * dx + dy * dy)
+                local maxDistance = 24
+                if distance > maxDistance then
+                    local scale = maxDistance / distance
+                    tx, ty = startX + dx * scale, startY + dy * scale
+                end
+                local cell = getCell and getCell() or nil
+                local gx, gy = math.floor(tx), math.floor(ty)
+                local gz = math.floor(tonumber(tz) or tonumber(startZ) or 0)
+                local cameraSquare = cell and cell:getGridSquare(gx, gy, gz) or nil
+                if not cameraSquare and cell then cameraSquare = cell:getGridSquare(gx, gy, 0) end
+                if cameraSquare then
+                    local isoX = targetSquare and targetSquare:getX() or -1
+                    local isoY = targetSquare and targetSquare:getY() or -1
+                    targetSquare = cameraSquare
+                    print(string.format("[ViewpointGael] launcher impact target iso=%d,%d camera=%d,%d,%d range=%.2f",
+                        isoX, isoY, gx, gy, gz, distance))
+                else
+                    print(string.format("[ViewpointGael] camera impact square missing at %d,%d,%d; retaining Gael target",
+                        gx, gy, gz))
+                end
+            end
+        end
+        return originalLauncherImpactResolver(startX, startY, startZ, targetSquare, ...)
+    end
+    installedLauncherImpactTarget = true
+    print("[ViewpointGael] standalone launcher impact uses the camera target; Gael resolves walls and detonation")
     return true
 end
 
@@ -375,12 +435,13 @@ local function install()
     installLauncherAim()
     installLauncherPreview()
     installTracerPreviewFilter()
+    installLauncherImpactTarget()
 end
 
 local function tick()
     install()
     if installedCrosshair and installedArchery and installedLauncherAim
-        and installedLauncherPreview and installedTracerPreview then
+        and installedLauncherPreview and installedTracerPreview and installedLauncherImpactTarget then
         Events.OnTick.Remove(tick)
     end
 end
