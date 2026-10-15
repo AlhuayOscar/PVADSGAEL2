@@ -7,6 +7,7 @@ if isServer() and not isClient() then return end
 local ZS = 2.44949
 local installedCrosshair = false
 local installedArchery = false
+local installedLauncherAim = false
 local warned = false
 
 local function api()
@@ -78,6 +79,62 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
     end
     if distance <= 0.01 then return nil end
     return px + dx, py + dy, pz + dz
+end
+
+-- Gael's standalone RPG/grenade-launcher handler keeps pickTargetSquare() local,
+-- and converts the pinned mouse position directly with IsoUtils.XToIso/YToIso.
+-- Redirect only that exact mouse conversion while a supported launcher is aimed
+-- in Viewpoint mode. Gael then sends this camera-ray point to its normal server
+-- projectile simulator, which still resolves walls and the final impact square.
+local realXToIso, realYToIso
+local function isGaelLauncherAiming()
+    local preview = rawget(_G, "GGS_StandaloneTrajectoryPreview")
+    local player = getPlayer and getPlayer() or nil
+    if not (player and preview and type(preview.active) == "function") then return false end
+    local ok, active = pcall(preview.active, player)
+    return ok and active == true and GGS_ViewpointLauncherMode.active(player)
+end
+
+local function installLauncherAim()
+    if installedLauncherAim then return true end
+    local iso = rawget(_G, "IsoUtils")
+    if not (iso and type(iso.XToIso) == "function" and type(iso.YToIso) == "function") then
+        return false
+    end
+    realXToIso, realYToIso = iso.XToIso, iso.YToIso
+
+    local function mousePoint(x, y, playerNum)
+        if not isGaelLauncherAiming() then return nil end
+        local mx, my = getMouseX and getMouseX() or nil, getMouseY and getMouseY() or nil
+        if not (mx and my) then return nil end
+        local core = getCore and getCore() or nil
+        local zoom = core and core.getZoom and core:getZoom(playerNum or 0) or 1
+        zoom = tonumber(zoom) or 1
+        if zoom <= 0 then zoom = 1 end
+        -- Do not affect other isometric conversions (inventory/UI/world picking).
+        if math.abs((tonumber(x) or 0) - mx * zoom) > 0.01
+            or math.abs((tonumber(y) or 0) - my * zoom) > 0.01 then
+            return nil
+        end
+        local player = getPlayer and getPlayer() or nil
+        local tx, ty = GGS_ViewpointLauncherMode.target(player, 60)
+        if tx and ty then return tx, ty end
+        return nil
+    end
+
+    iso.XToIso = function(x, y, z, playerNum)
+        local tx = mousePoint(x, y, playerNum)
+        if tx then return tx end
+        return realXToIso(x, y, z)
+    end
+    iso.YToIso = function(x, y, z, playerNum)
+        local _, ty = mousePoint(x, y, playerNum)
+        if ty then return ty end
+        return realYToIso(x, y, z)
+    end
+    installedLauncherAim = true
+    print("[ViewpointGael] standalone launchers use the Viewpoint camera-ray impact target")
+    return true
 end
 
 local function setSuppress(on)
@@ -256,11 +313,12 @@ local function install()
     warned = false
     installCrosshair()
     installArchery()
+    installLauncherAim()
 end
 
 local function tick()
     install()
-    if installedCrosshair and installedArchery then
+    if installedCrosshair and installedArchery and installedLauncherAim then
         Events.OnTick.Remove(tick)
     end
 end
