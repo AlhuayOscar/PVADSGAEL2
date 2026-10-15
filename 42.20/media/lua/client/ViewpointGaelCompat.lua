@@ -5,6 +5,7 @@
 if isServer() and not isClient() then return end
 
 local ZS = 2.44949
+local MIN_UPWARD_LAUNCHER_RANGE = 8.0 -- outside Gael's largest standalone blast radius
 local installedCrosshair = false
 local installedArchery = false
 local installedLauncherAim = false
@@ -66,6 +67,16 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
         dx, dy, dz = math.cos(yaw) * flat * reach,
             math.sin(yaw) * flat * reach, math.sin(pitch) * reach / 2.44949
         distance = math.sqrt(dx * dx + dy * dy)
+        -- Gael's fire request only accepts a ground square. Looking high into
+        -- empty sky makes the ray's ground projection collapse back onto the
+        -- shooter, so its impact fuse can explode at the launcher's feet. Keep
+        -- that fallback safely downrange; Gael still simulates the flight and
+        -- resolves an earlier wall/window collision on the server.
+        if pitch > 0.25 and distance < MIN_UPWARD_LAUNCHER_RANGE then
+            dx, dy = math.cos(yaw) * MIN_UPWARD_LAUNCHER_RANGE,
+                math.sin(yaw) * MIN_UPWARD_LAUNCHER_RANGE
+            distance = MIN_UPWARD_LAUNCHER_RANGE
+        end
     end
     -- In first person, preserve the real rendered Gael weapon axis (including
     -- ADS recoil/sway) and use the camera hit only to choose launch distance.
