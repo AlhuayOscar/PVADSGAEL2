@@ -8,7 +8,9 @@ local ZS = 2.44949
 local installedCrosshair = false
 local installedArchery = false
 local installedLauncherAim = false
+local installedLauncherPreview = false
 local warned = false
+local originalLauncherPreviewActive
 
 local function api()
     local root = rawget(_G, "ViewpointGael")
@@ -90,9 +92,26 @@ local realXToIso, realYToIso
 local function isGaelLauncherAiming()
     local preview = rawget(_G, "GGS_StandaloneTrajectoryPreview")
     local player = getPlayer and getPlayer() or nil
-    if not (player and preview and type(preview.active) == "function") then return false end
-    local ok, active = pcall(preview.active, player)
+    local activeFn = originalLauncherPreviewActive or (preview and preview.active)
+    if not (player and type(activeFn) == "function") then return false end
+    local ok, active = pcall(activeFn, player)
     return ok and active == true and GGS_ViewpointLauncherMode.active(player)
+end
+
+local function installLauncherPreview()
+    if installedLauncherPreview then return true end
+    local preview = rawget(_G, "GGS_StandaloneTrajectoryPreview")
+    if not (preview and type(preview.active) == "function") then return false end
+    originalLauncherPreviewActive = preview.active
+    preview.active = function(playerObj)
+        -- Hide Gael's isometric arc while Viewpoint owns aiming. The launcher
+        -- still fires through Gael; only its screen-space preview is suppressed.
+        if GGS_ViewpointLauncherMode.active(playerObj) then return false end
+        return originalLauncherPreviewActive(playerObj)
+    end
+    installedLauncherPreview = true
+    print("[ViewpointGael] isometric launcher preview hidden in Viewpoint modes")
+    return true
 end
 
 local function installLauncherAim()
@@ -107,8 +126,10 @@ local function installLauncherAim()
         if not isGaelLauncherAiming() then return nil end
         local mx, my = getMouseX and getMouseX() or nil, getMouseY and getMouseY() or nil
         if not (mx and my) then return nil end
+        local player = getPlayer and getPlayer() or nil
+        local pn = player and player.getPlayerNum and player:getPlayerNum() or playerNum or 0
         local core = getCore and getCore() or nil
-        local zoom = core and core.getZoom and core:getZoom(playerNum or 0) or 1
+        local zoom = core and core.getZoom and core:getZoom(pn) or 1
         zoom = tonumber(zoom) or 1
         if zoom <= 0 then zoom = 1 end
         -- Do not affect other isometric conversions (inventory/UI/world picking).
@@ -116,7 +137,6 @@ local function installLauncherAim()
             or math.abs((tonumber(y) or 0) - my * zoom) > 0.01 then
             return nil
         end
-        local player = getPlayer and getPlayer() or nil
         local tx, ty = GGS_ViewpointLauncherMode.target(player, 60)
         if tx and ty then return tx, ty end
         return nil
@@ -314,11 +334,12 @@ local function install()
     installCrosshair()
     installArchery()
     installLauncherAim()
+    installLauncherPreview()
 end
 
 local function tick()
     install()
-    if installedCrosshair and installedArchery and installedLauncherAim then
+    if installedCrosshair and installedArchery and installedLauncherAim and installedLauncherPreview then
         Events.OnTick.Remove(tick)
     end
 end
