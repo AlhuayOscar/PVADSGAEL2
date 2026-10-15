@@ -1,0 +1,10 @@
+name=PVADSGAEL2
+id=PVADSGAEL2
+description=Standalone first-person ADS and recoil integration for Gael Gun Store and Viewpoint.
+require=GaelGunStore_B42,Viewpoint,\ZombieBuddy
+loadModAfter=GaelGunStore_B42,Viewpoint,ZombieBuddy
+modversion=0.1.0
+versionMin=42.21
+ZBVersionMin=2.3.0
+javaJarFile=media/java/client/PVADSGAEL2.jar
+javaPkgName=pvads

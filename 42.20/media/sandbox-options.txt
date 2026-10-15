@@ -1,0 +1,115 @@
+VERSION = 1,
+
+option PVADSGAEL2.InputDiagnostics
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_InputDiagnostics,
+}
+
+option PVADSGAEL2.CrouchIronFocus
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_CrouchIronFocus,
+}
+
+option PVADSGAEL2.CrouchIronFocusMultiplier
+{
+    type = double,
+    min = 0.30,
+    max = 1.00,
+    default = 0.70,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_CrouchIronFocusMultiplier,
+}
+
+option PVADSGAEL2.WheelIronFocus
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_WheelIronFocus,
+}
+
+option PVADSGAEL2.FocusSearchBlur
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_FocusSearchBlur,
+}
+
+option PVADSGAEL2.ExperimentalExtendedRange
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_ExperimentalExtendedRange,
+}
+
+option PVADSGAEL2.NerfLongDistances
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_NerfLongDistances,
+}
+
+option PVADSGAEL2.HeadshotDamageBonus
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_HeadshotDamageBonus,
+}
+
+option PVADSGAEL2.HeadshotImpactSound
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_HeadshotImpactSound,
+}
+
+option PVADSGAEL2.NoReferenceHoldSway
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_NoReferenceHoldSway,
+}
+
+option PVADSGAEL2.SightMotion
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_SightMotion,
+}
+
+option PVADSGAEL2.ShotPitchRecoil
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_ShotPitchRecoil,
+}
+
+option PVADSGAEL2.ShotRecoilAffectsAim
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_ShotRecoilAffectsAim,
+}
+
+option PVADSGAEL2.BoltPitchMotion
+{
+    type = boolean,
+    default = true,
+    page = PVADSGAEL2,
+    translation = PVADSGAEL2_BoltPitchMotion,
+}
