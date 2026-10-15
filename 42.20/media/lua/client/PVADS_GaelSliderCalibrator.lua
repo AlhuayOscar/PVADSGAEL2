@@ -503,23 +503,26 @@ function PVADSGaelSliderWindow:applyAttachmentSelection()
     local attachment = options[self.attachmentIndex]
     local itemId = self.weaponCombo and self.weaponCombo:getSelectedData()
     local player = getSpecificPlayer(0)
-    local weapon = player and itemId and findOwned(player:getInventory(), itemId)
+    local held = player and PVADS.Controller.weapon(player)
+    -- Never change a copy in the inventory: Controller.refresh() resolves the
+    -- firearm in hand, so that would change profile values without changing its optic.
+    local weapon = held and itemId and held:getFullType() == itemId and held or nil
     if not attachment or not player or not weapon then
-        self.message = "Equipa el arma seleccionada antes de cambiar su mira"
-        return
+        self.message = "Espera a que se equipe el arma seleccionada antes de cambiar su mira"
+        return false
     end
     if attachment.mountId then
         local mount = instanceItem(attachment.mountId)
         local partType = mount and mount:getPartType()
         if partType and not replaceWeaponPart(player, weapon, attachment.mountId, partType) then
             self.message = "No se pudo instalar la montura " .. attachment.mountId
-            return
+            return false
         end
     end
     if attachment.id then
         if not replaceWeaponPart(player, weapon, attachment.id, "Scope") then
             self.message = "No se pudo instalar la mira " .. attachment.id
-            return
+            return false
         end
     else
         local currentPart = weapon:getWeaponPart("Scope")
@@ -529,16 +532,26 @@ function PVADSGaelSliderWindow:applyAttachmentSelection()
             if syncHandWeaponFields then pcall(syncHandWeaponFields, player, weapon) end
         end
     end
+    local installed = weapon:getWeaponPart("Scope")
+    if attachment.id and (not installed or installed:getFullType() ~= attachment.id) then
+        self.message = "El juego no instaló la mira " .. attachment.id
+        return false
+    elseif not attachment.id and installed then
+        self.message = "No se pudo retirar la mira actual"
+        return false
+    end
     PVADS.Controller.refresh(true)
     self.message = attachment.id and ("Mira de prueba: " .. attachment.id)
         or "Mira retirada para probar los hierros"
+    return true
 end
 
 function PVADSGaelSliderWindow:stepAttachment(delta)
     local options = self.attachments or {}
     if #options == 0 then return end
+    local previousIndex = self.attachmentIndex
     self.attachmentIndex = (self.attachmentIndex - 1 + delta + #options) % #options + 1
-    self:applyAttachmentSelection()
+    if not self:applyAttachmentSelection() then self.attachmentIndex = previousIndex end
 end
 
 function PVADSGaelSliderWindow:onPrevAttachment() self:stepAttachment(-1) end
