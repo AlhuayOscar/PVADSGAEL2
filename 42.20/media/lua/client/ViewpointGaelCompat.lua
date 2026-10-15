@@ -7,7 +7,10 @@ if isServer() and not isClient() then return end
 local ZS = 2.44949
 local installedCrosshair = false
 local installedArchery = false
+local installedLauncherAim = false
+local installedLauncherPreview = false
 local warned = false
+local originalLauncherPreviewActive
 
 local function api()
     local root = rawget(_G, "ViewpointGael")
@@ -32,10 +35,8 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
     if not GGS_ViewpointLauncherMode.active(playerObj) then return nil end
     local aim = api()
     if not (aim and aim.aimX and aim.aimY and aim.aimZ) then return nil end
-    local requestedRange = tonumber(aim.sightTargetDistance and aim.sightTargetDistance())
-    -- The sight bridge clamps foreground/self hits (such as the RPG model) to
-    -- 2 tiles. Treat that as an invalid aim pick and continue along Viewpoint's
-    -- live look ray instead of detonating beside the shooter.
+    local sightRange = tonumber(aim.sightTargetDistance and aim.sightTargetDistance())
+    local requestedRange = sightRange
     if not requestedRange or requestedRange ~= requestedRange or requestedRange == math.huge
         or requestedRange <= 2.75 then
         requestedRange = tonumber(maxDistance) or 60
@@ -52,7 +53,12 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
         dx, dy, dz = 0, 0, 0
     end
     local distance = math.sqrt(dx * dx + dy * dy)
-    if distance < 2.75 then
+    -- aimX/Y/Z are the camera ray's actual MousePick hit. Keep valid close hits:
+    -- replacing every hit within 2.75 tiles with the fallback range sent rockets
+    -- far beyond nearby targets. Only synthesize a forward point when the ray
+    -- has no usable hit (or lands on the shooter's own origin).
+    local validHit = okX and okY and okZ and tonumber(hitX) and tonumber(hitY) and tonumber(hitZ)
+    if not validHit or distance < 0.25 then
         local yaw = tonumber(aim.yaw and aim.yaw()) or 0
         local pitch = tonumber(aim.pitch and aim.pitch()) or 0
         local reach = requestedRange
@@ -78,6 +84,80 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
     end
     if distance <= 0.01 then return nil end
     return px + dx, py + dy, pz + dz
+end
+
+-- Gael's standalone RPG/grenade-launcher handler keeps pickTargetSquare() local,
+-- and converts the pinned mouse position directly with IsoUtils.XToIso/YToIso.
+-- Redirect only that exact mouse conversion while a supported launcher is aimed
+-- in Viewpoint mode. Gael then sends this camera-ray point to its normal server
+-- projectile simulator, which still resolves walls and the final impact square.
+local realXToIso, realYToIso
+local function isGaelLauncherAiming()
+    local preview = rawget(_G, "GGS_StandaloneTrajectoryPreview")
+    local player = getPlayer and getPlayer() or nil
+    local activeFn = originalLauncherPreviewActive or (preview and preview.active)
+    if not (player and type(activeFn) == "function") then return false end
+    local ok, active = pcall(activeFn, player)
+    return ok and active == true and GGS_ViewpointLauncherMode.active(player)
+end
+
+local function installLauncherPreview()
+    if installedLauncherPreview then return true end
+    local preview = rawget(_G, "GGS_StandaloneTrajectoryPreview")
+    if not (preview and type(preview.active) == "function") then return false end
+    originalLauncherPreviewActive = preview.active
+    preview.active = function(playerObj)
+        -- Hide Gael's isometric arc while Viewpoint owns aiming. The launcher
+        -- still fires through Gael; only its screen-space preview is suppressed.
+        if GGS_ViewpointLauncherMode.active(playerObj) then return false end
+        return originalLauncherPreviewActive(playerObj)
+    end
+    installedLauncherPreview = true
+    print("[ViewpointGael] isometric launcher preview hidden in Viewpoint modes")
+    return true
+end
+
+local function installLauncherAim()
+    if installedLauncherAim then return true end
+    local iso = rawget(_G, "IsoUtils")
+    if not (iso and type(iso.XToIso) == "function" and type(iso.YToIso) == "function") then
+        return false
+    end
+    realXToIso, realYToIso = iso.XToIso, iso.YToIso
+
+    local function mousePoint(x, y, playerNum)
+        if not isGaelLauncherAiming() then return nil end
+        local mx, my = getMouseX and getMouseX() or nil, getMouseY and getMouseY() or nil
+        if not (mx and my) then return nil end
+        local player = getPlayer and getPlayer() or nil
+        local pn = player and player.getPlayerNum and player:getPlayerNum() or playerNum or 0
+        local core = getCore and getCore() or nil
+        local zoom = core and core.getZoom and core:getZoom(pn) or 1
+        zoom = tonumber(zoom) or 1
+        if zoom <= 0 then zoom = 1 end
+        -- Do not affect other isometric conversions (inventory/UI/world picking).
+        if math.abs((tonumber(x) or 0) - mx * zoom) > 0.01
+            or math.abs((tonumber(y) or 0) - my * zoom) > 0.01 then
+            return nil
+        end
+        local tx, ty = GGS_ViewpointLauncherMode.target(player, 60)
+        if tx and ty then return tx, ty end
+        return nil
+    end
+
+    iso.XToIso = function(x, y, z, playerNum)
+        local tx = mousePoint(x, y, playerNum)
+        if tx then return tx end
+        return realXToIso(x, y, z)
+    end
+    iso.YToIso = function(x, y, z, playerNum)
+        local _, ty = mousePoint(x, y, playerNum)
+        if ty then return ty end
+        return realYToIso(x, y, z)
+    end
+    installedLauncherAim = true
+    print("[ViewpointGael] standalone launchers use the Viewpoint camera-ray impact target")
+    return true
 end
 
 local function setSuppress(on)
@@ -256,11 +336,13 @@ local function install()
     warned = false
     installCrosshair()
     installArchery()
+    installLauncherAim()
+    installLauncherPreview()
 end
 
 local function tick()
     install()
-    if installedCrosshair and installedArchery then
+    if installedCrosshair and installedArchery and installedLauncherAim and installedLauncherPreview then
         Events.OnTick.Remove(tick)
     end
 end

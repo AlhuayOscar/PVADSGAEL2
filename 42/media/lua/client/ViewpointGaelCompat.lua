@@ -35,10 +35,8 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
     if not GGS_ViewpointLauncherMode.active(playerObj) then return nil end
     local aim = api()
     if not (aim and aim.aimX and aim.aimY and aim.aimZ) then return nil end
-    local requestedRange = tonumber(aim.sightTargetDistance and aim.sightTargetDistance())
-    -- The sight bridge clamps foreground/self hits (such as the RPG model) to
-    -- 2 tiles. Treat that as an invalid aim pick and continue along Viewpoint's
-    -- live look ray instead of detonating beside the shooter.
+    local sightRange = tonumber(aim.sightTargetDistance and aim.sightTargetDistance())
+    local requestedRange = sightRange
     if not requestedRange or requestedRange ~= requestedRange or requestedRange == math.huge
         or requestedRange <= 2.75 then
         requestedRange = tonumber(maxDistance) or 60
@@ -55,7 +53,12 @@ function GGS_ViewpointLauncherMode.target(playerObj, maxDistance)
         dx, dy, dz = 0, 0, 0
     end
     local distance = math.sqrt(dx * dx + dy * dy)
-    if distance < 2.75 then
+    -- aimX/Y/Z are the camera ray's actual MousePick hit. Keep valid close hits:
+    -- replacing every hit within 2.75 tiles with the fallback range sent rockets
+    -- far beyond nearby targets. Only synthesize a forward point when the ray
+    -- has no usable hit (or lands on the shooter's own origin).
+    local validHit = okX and okY and okZ and tonumber(hitX) and tonumber(hitY) and tonumber(hitZ)
+    if not validHit or distance < 0.25 then
         local yaw = tonumber(aim.yaw and aim.yaw()) or 0
         local pitch = tonumber(aim.pitch and aim.pitch()) or 0
         local reach = requestedRange
