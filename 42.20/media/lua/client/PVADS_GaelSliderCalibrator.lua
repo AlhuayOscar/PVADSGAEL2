@@ -783,12 +783,29 @@ function PVADSGaelSliderWindow:onCopy()
     self.message = "Copied current profile"
 end
 
-local function canOpticFitWeapon(player, weaponId, opticId)
+local function canOpticFitWeapon(player, weaponId, opticId, mounts)
     local testWeapon = instanceItem(weaponId)
     local optic = instanceItem(opticId)
     if not testWeapon or not optic then return false end
     local ok, canAttach = pcall(function() return optic:canAttach(player, testWeapon) end)
-    return ok and canAttach == true
+    if ok and canAttach then return true end
+
+    -- Mounts are tested on temporary script items only; the real gun need not have one installed.
+    for _, mountDef in ipairs(mounts or {}) do
+        local mount = instanceItem(mountDef.id)
+        local mountedWeapon = instanceItem(weaponId)
+        if mount and mountedWeapon then
+            local mountOK, mountAllowed = pcall(function() return mount:canAttach(player, mountedWeapon) end)
+            if mountOK and mountAllowed then
+                local attachOK = pcall(function() mountedWeapon:attachWeaponPart(player, mount) end)
+                if attachOK then
+                    local opticOK, opticAllowed = pcall(function() return optic:canAttach(player, mountedWeapon) end)
+                    if opticOK and opticAllowed then return true end
+                end
+            end
+        end
+    end
+    return false
 end
 
 local function copyProfileTable(source)
@@ -852,13 +869,14 @@ function PVADSGaelSliderWindow:onCopyLens()
         return
     end
 
+    local _, mounts = previewPartDefinitions()
     local entries, seen, targetWeapons = {}, {}, {}
     for _, weapon in ipairs(WEAPONS) do
         local targetWeaponId = weapon[2]
         if targetWeaponId and targetWeaponId ~= sourceWeaponId
             and ScriptManager.instance:getItem(targetWeaponId) then
             for _, opticId in ipairs(opticIds) do
-                if canOpticFitWeapon(player, targetWeaponId, opticId) then
+                if canOpticFitWeapon(player, targetWeaponId, opticId, mounts) then
                     local key = targetWeaponId .. "|" .. opticId
                     if not seen[key] then
                         seen[key] = true
@@ -888,7 +906,7 @@ function PVADSGaelSliderWindow:onCopyLens()
     modal.prerender = function(dialog)
         ISModalDialog.prerender(dialog)
         dialog:drawText(dialog.gaelInfo, 18, 48, 0.9, 0.85, 0.55, 1, UIFont.Small)
-        dialog:drawText("No se exige una montura. Los perfiles existentes de destino se reemplazaran por completo.",
+        dialog:drawText("No hace falta tener montura instalada. Los perfiles existentes de destino se reemplazaran por completo.",
             18, 68, 0.9, 0.9, 0.9, 1, UIFont.Small)
     end
     modal:initialise(); modal:addToUIManager()
