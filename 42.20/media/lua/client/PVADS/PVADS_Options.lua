@@ -13,7 +13,7 @@ Only if that window is not available (older Viewpoint, Java part not loaded) the
 ]]
 
 PVADS.Settings = {
-    mode = 4,               -- 1 aim = ADS, 2 hold key, 3 toggle key, 4 click aim (default since 1.7.0: DayZ, click = sights, hold = hip)
+    mode = 1,               -- 1 aim = ADS, 2 hold key, 3 toggle key
     key = Keyboard.KEY_V,
     speedMul = 1.0, adsSens = 0.85, scopeSens = 1.0,
     hideCrosshair = true, adsSharp = true, thirdAds = true, closeClip = true, sway = true, swayAmount = 1.0, cameraRecoil = true, recoilAmount = 1.0,
@@ -59,7 +59,7 @@ function PVADS.applySettings()
             if s[f] ~= nil and type(s[f]) == type(v) then s[f] = v end
         end
     elseif opts then
-        s.mode = val("adsControl", s.mode)       -- new id in 1.7.0: the DayZ-style default reaches everyone once
+        s.mode = val("adsControl", s.mode)
         s.speedMul = val("speed", s.speedMul)
         s.adsSens = val("adsSens", s.adsSens)
         s.scopeSens = val("scopeSens", s.scopeSens)
@@ -119,11 +119,13 @@ function PVADS.applySettings()
             presenceOthers = s.presenceOthers and true or false,
         })
         PVADS_setDeveloper(s.developer and true or false)
-        if PVADS_setClickAim then PVADS_setClickAim(s.mode == 4) end
-        if PVADS._loggedMode ~= s.mode then   -- once per session, and again only if the option changes
+        -- Mode 4 used an experimental click-to-lock input that did not work reliably.
+        if tonumber(s.mode) == 4 or tonumber(s.mode) == nil then s.mode = 1 end
+        if PVADS_setClickAim then PVADS_setClickAim(false) end
+        if PVADS._loggedMode ~= s.mode then
             PVADS._loggedMode = s.mode
             local names = { "aim (right mouse) raises the sights", "hold the ADS key while aiming",
-                            "ADS key toggles the sights", "DayZ: click right mouse = sights, hold = hip fire" }
+                            "ADS key toggles the sights" }
             PVADS.log("ADS control: " .. tostring(s.mode) .. " = " .. tostring(names[s.mode] or "unknown"))
         end
         if PVADS.Controller then PVADS.Controller.aimAllowed = nil end
@@ -148,11 +150,10 @@ local function build(final)
     opts = PZAPI.ModOptions:create(ID, "PVADSGAEL2 - ADS & Recoil")
     local s = PVADS.Settings
     opts:addTitle("Aim down sights")
-    local m = opts:addComboBox("adsControl", "ADS control", "How sights are raised with a firearm. DayZ style: click the aim button (right mouse) to bring the sights up and keep them there, click again to lower them; hold it for ordinary hip aiming. Leave the game's own 'Toggle aim' option off with it.")
+    local m = opts:addComboBox("adsControl", "ADS control", "Choose how the sights are raised.")
     m:addItem("Aim (right mouse) raises the sights", s.mode == 1)
     m:addItem("Hold the ADS key while aiming", s.mode == 2)
     m:addItem("Hip fire; ADS key toggles sights (remembered)", s.mode == 3)
-    m:addItem("DayZ: click right mouse = sights, hold = hip fire", s.mode == 4)
     opts:addTickBox("aimPriority", "Aiming takes priority over menus", s.aimPriority, "While you hold a firearm, the ADS key does not open the vehicle / animal radial menu that shares it (V), and Viewpoint Interface's interaction prompt and action menu step aside while you aim. Lower the gun or holster it to use them.")
     opts:addTickBox("thirdAds", "ADS from third person switches to first person", s.thirdAds, "In third person, raising the sights switches to first person and lowering them switches back. Hip fire stays in third person.")
     opts:addSlider("speed", "ADS transition speed", 0.5, 2.0, 0.05, s.speedMul, "Multiplies every weapon's raise time (higher = faster).")

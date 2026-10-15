@@ -24,19 +24,9 @@ local FIELDS = {
     {"pipZoom", "PiP zoom", 0.01, 1}, {"pipRetX", "PiP reticle X", 0.005},
     {"pipRetY", "PiP reticle Y", 0.005}, {"pipDepth", "PiP depth", 0.002},
 }
--- Shared lens presentation and sight XYZ values copied between sniper rifles.
--- Pitch/yaw, relief and optic height stay specific to each weapon.
-local SHARED_LENS_FIELDS = {
-    "adjX", "adjY", "adjZ", "lensScale", "pipX", "pipY", "pipZ",
-    "pipScale", "pipZoom", "pipRetX", "pipRetY", "pipDepth",
-}
+-- Copy every saved optic profile from one weapon to compatible weapons.
 local RANGES = { 1, 5, 20 }
 local WEAPONS = PVADS_GaelWeaponCatalog or {}
--- Bulk lens copy is temporarily restricted to bolt-action sniper rifles.
--- Add newly released Gael sniper IDs here to include them in future copies.
-local SNIPER_COPY_WEAPON_IDS = PVADS.GaelSniperCopyWeaponIds or {}
-local SNIPER_COPY_SOURCE_WEAPON_SET = { ["Base.Carcano"] = true }
-for _, weaponId in ipairs(SNIPER_COPY_WEAPON_IDS) do SNIPER_COPY_SOURCE_WEAPON_SET[weaponId] = true end
 local PREVIEW_SCOPE_ITEMS
 local PREVIEW_MOUNT_ITEMS
 local RETICLES = {
@@ -330,7 +320,7 @@ function PVADSGaelSliderWindow:createChildren()
     button(8, "Probe", PVADSGaelSliderWindow.onProbe)
     button(106, "Validate", PVADSGaelSliderWindow.onValidate)
     self.realTimeDotButton = button(204, PVADS.GaelRealTimeDot and "RealTimeDot: ON" or "RealTimeDot: OFF", PVADSGaelSliderWindow.onRealTimeDot, 140)
-    self.copyLensButton = button(350, "Copiar lente", PVADSGaelSliderWindow.onCopyLens, 96)
+    self.copyLensButton = button(350, "Copiar perfiles", PVADSGaelSliderWindow.onCopyLens, 96)
     self.pipAltButton = button(450, "PiP ALT", PVADSGaelSliderWindow.onPipAlt, 76)
     button(530, "Close", PVADSGaelSliderWindow.close, 76)
     self.infoY = y + bh + 10
@@ -793,98 +783,112 @@ function PVADSGaelSliderWindow:onCopy()
     self.message = "Copied current profile"
 end
 
-local function canOpticFitWeapon(player, weaponId, opticId, mounts)
+local function canOpticFitWeapon(player, weaponId, opticId)
     local testWeapon = instanceItem(weaponId)
     local optic = instanceItem(opticId)
     if not testWeapon or not optic then return false end
     local ok, canAttach = pcall(function() return optic:canAttach(player, testWeapon) end)
-    if ok and canAttach then return true end
+    return ok and canAttach == true
+end
 
-    for _, mountDef in ipairs(mounts or {}) do
-        local mount = instanceItem(mountDef.id)
-        local mountedWeapon = instanceItem(weaponId)
-        if mount and mountedWeapon then
-            local mountOK, mountAllowed = pcall(function() return mount:canAttach(player, mountedWeapon) end)
-            if mountOK and mountAllowed then
-                local attachOK = pcall(function() mountedWeapon:attachWeaponPart(player, mount) end)
-                if attachOK then
-                    local opticOK, opticAllowed = pcall(function() return optic:canAttach(player, mountedWeapon) end)
-                    if opticOK and opticAllowed then return true end
-                end
-            end
-        end
+local function copyProfileTable(source)
+    local out = {}
+    for key, value in pairs(source or {}) do
+        if type(value) == "table" then out[key] = copyProfileTable(value)
+        else out[key] = value end
     end
-    return false
+    return out
 end
 
 function PVADSGaelSliderWindow:onCopyLens()
     local sourceKey = selected()
     local profile = PVADS.Controller and PVADS.Controller.profile
-    if not sourceKey or not profile or not profile.opticId then
-        self.message = "Equipa el arma y la mira que usaras como origen"
+    if not sourceKey or not profile then
+        self.message = "Equipa el arma que usaras como origen"
+        return
+    end
+    if self.editGlobal then
+        self.message = "Cambia al perfil del arma; la copia usa perfiles individuales, no Global"
         return
     end
     local player = getSpecificPlayer(0)
     if not player then self.message = "Jugador no disponible"; return end
 
-    local sourceWeaponId, opticId = string.match(sourceKey, "^([^|]*)|(.*)$")
-    if not sourceWeaponId or opticId == "" or opticId ~= tostring(profile.opticId) then
-        self.message = "No se pudo identificar la mira del perfil actual"
-        return
-    end
-    if not SNIPER_COPY_SOURCE_WEAPON_SET[sourceWeaponId] then
-        self.message = "Para copiar, equipa un rifle francotirador de cerrojo"
+    local sourceWeaponId = string.match(sourceKey, "^([^|]*)|")
+    if not sourceWeaponId then
+        self.message = "No se pudo identificar el arma de origen"
         return
     end
 
-    local values = {}
-    for _, name in ipairs(SHARED_LENS_FIELDS) do
-        local field
-        for _, candidate in ipairs(FIELDS) do
-            if candidate[1] == name then field = candidate; break end
-        end
-        if field then
-            if self.editGlobal then
-                local value = tonumber(profile[name])
-                if value == nil and profile.userWeapon then value = tonumber(profile.userWeapon[name]) end
-                if value == nil then value = field[4] or 0 end
-                -- Unrestricted offsets still apply after saving the copied
-                -- local values, so subtract them. In only-available mode the
-                -- copied explicit field blocks the global offset and needs the
-                -- full currently previewed value.
-                if not PVADS.GaelGlobalOnlyAvailable() then
-                    value = value - PVADS.GaelEffectiveGlobalValue(profile, name)
-                end
-                values[name] = value
-            else
-                values[name] = current(field, false)
+    -- Snapshot every saved optic profile for this weapon. An empty optic suffix is the no-sight profile.
+    local sourceProfiles, sourcePrefix = {}, sourceWeaponId .. "|"
+    for key, saved in pairs(PVADS.User or {}) do
+        if type(key) == "string" and string.sub(key, 1, #sourcePrefix) == sourcePrefix then
+            local opticId = string.sub(key, #sourcePrefix + 1)
+            if opticId ~= "" and type(saved) == "table" then
+                sourceProfiles[opticId] = copyProfileTable(saved)
             end
         end
     end
 
-    local _, mounts = previewPartDefinitions()
-    local targetKeys, seen = {}, {}
-    local function addTarget(weaponId)
-        local key = tostring(weaponId) .. "|" .. opticId
-        if not seen[key] then seen[key] = true; targetKeys[#targetKeys + 1] = key end
-    end
-    for _, weaponId in ipairs(SNIPER_COPY_WEAPON_IDS) do
-        if weaponId ~= sourceWeaponId and canOpticFitWeapon(player, weaponId, opticId, mounts) then
-            addTarget(weaponId)
+    -- Include live edits for the equipped optic, even before Save is pressed.
+    local liveOpticId = tostring(profile.opticId or "")
+    if liveOpticId ~= "" then
+        local liveProfile = sourceProfiles[liveOpticId] or {}
+        sourceProfiles[liveOpticId] = liveProfile
+        for _, field in ipairs(FIELDS) do liveProfile[field[1]] = current(field, false) end
+        for _, name in ipairs({ "mode", "reticle", "pipAlt", "recoilPitchReverse" }) do
+            local value = profile[name]
+            if value == nil and profile.userWeapon then value = profile.userWeapon[name] end
+            if value ~= nil then liveProfile[name] = value end
         end
     end
 
-    local globalCopy = self.editGlobal
-    self.pendingLensCopy = { sourceKey = sourceKey, opticId = opticId, keys = targetKeys, values = values, global = globalCopy }
+    local opticIds = {}
+    for opticId in pairs(sourceProfiles) do opticIds[#opticIds + 1] = opticId end
+    table.sort(opticIds)
+    if #opticIds == 0 then
+        self.message = "El arma de origen no tiene perfiles guardados de miras"
+        return
+    end
+
+    local entries, seen, targetWeapons = {}, {}, {}
+    for _, weapon in ipairs(WEAPONS) do
+        local targetWeaponId = weapon[2]
+        if targetWeaponId and targetWeaponId ~= sourceWeaponId
+            and ScriptManager.instance:getItem(targetWeaponId) then
+            for _, opticId in ipairs(opticIds) do
+                if canOpticFitWeapon(player, targetWeaponId, opticId) then
+                    local key = targetWeaponId .. "|" .. opticId
+                    if not seen[key] then
+                        seen[key] = true
+                        entries[#entries + 1] = { key = key, values = copyProfileTable(sourceProfiles[opticId]) }
+                        targetWeapons[targetWeaponId] = true
+                    end
+                end
+            end
+        end
+    end
+
+    local weaponCount = 0
+    for _ in pairs(targetWeapons) do weaponCount = weaponCount + 1 end
+    if #entries == 0 then
+        self.message = "No hay armas destino con perfiles compatibles para estas miras"
+        return
+    end
+    self.pendingLensCopy = {
+        sourceWeaponId = sourceWeaponId, sourceProfileCount = #opticIds,
+        entries = entries, targetWeaponCount = weaponCount,
+    }
     local modal = ISModalDialog:new(0, 0, 540, 150,
-        string.format("Copiar ajustes a %d francotiradores compatibles con %s%s?",
-            #targetKeys, tostring(profile.opticId), globalCopy and " (incluye monturas)" or ""), true,
+        string.format("Copiar %d perfiles de mira de %s a %d armas (%d perfiles)?",
+            #opticIds, sourceWeaponId, weaponCount, #entries), true,
         self, PVADSGaelSliderWindow.onConfirmCopyLens)
-    modal.gaelInfo = string.format("Mira: %s. Se copian Sight XYZ y ajustes de lente/PiP; Pitch/Yaw, Relief y altura quedan propios.", opticId)
+    modal.gaelInfo = "Se copian todos los valores de cada mira compatible; el perfil sin mira se omite."
     modal.prerender = function(dialog)
         ISModalDialog.prerender(dialog)
         dialog:drawText(dialog.gaelInfo, 18, 48, 0.9, 0.85, 0.55, 1, UIFont.Small)
-        dialog:drawText("Sight XYZ, Lens size, PiP X/Y/Z, PiP size/zoom, reticle offsets y depth se sobrescribiran.",
+        dialog:drawText("No se exige una montura. Los perfiles existentes de destino se reemplazaran por completo.",
             18, 68, 0.9, 0.9, 0.9, 1, UIFont.Small)
     end
     modal:initialise(); modal:addToUIManager()
@@ -895,23 +899,22 @@ function PVADSGaelSliderWindow:onConfirmCopyLens(button)
     self.pendingLensCopy = nil
     if not pending then return end
     if button.internal ~= "YES" then
-        self.message = "Copia de lente cancelada"
+        self.message = "Copia de perfiles cancelada"
         return
     end
-    for _, key in ipairs(pending.keys) do
-        PVADS.User[key] = PVADS.User[key] or {}
-        if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[key] = nil end
-        for name, value in pairs(pending.values) do
-            PVADS.User[key][name] = value
-        end
+    for _, entry in ipairs(pending.entries) do
+        PVADS.User[entry.key] = entry.values
+        if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[entry.key] = nil end
     end
     local saved = PVADS.saveUserProfiles()
     PVADS.Controller.refresh(true)
-    print(string.format("[PVADSGAEL2][copy-lens] source=%s optic=%s targets=%d saved=%s fields=%s",
-        pending.sourceKey, pending.opticId, #pending.keys, tostring(saved), table.concat(SHARED_LENS_FIELDS, ",")))
+    print(string.format("[PVADSGAEL2][copy-profiles] source=%s sourceProfiles=%d targetWeapons=%d targetProfiles=%d saved=%s",
+        pending.sourceWeaponId, pending.sourceProfileCount, pending.targetWeaponCount,
+        #pending.entries, tostring(saved)))
     self.message = saved
-        and string.format("Ajustes de %s copiados a %d combinaciones compatibles%s", pending.opticId, #pending.keys,
-            pending.global and " (desde Global)" or "")
+        and string.format("%d perfiles copiados a %d armas (%d perfiles)%s",
+            pending.sourceProfileCount, pending.targetWeaponCount, #pending.entries,
+            " desde " .. pending.sourceWeaponId)
         or "Copia aplicada pero no se pudo guardar"
 end
 

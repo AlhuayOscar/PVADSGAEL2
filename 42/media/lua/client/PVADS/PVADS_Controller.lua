@@ -133,36 +133,6 @@ local function onPlayerUpdate(pl)
     local now0 = getTimestampMs()
     if pl.isDoShove and pl:isDoShove() then C.shoveUntil = now0 + SHOVE_HOLD_MS end
     local shoving = now0 < C.shoveUntil
-    -- click aiming (mode 4): a click may lock the sights with a firearm in hand unless something really stops ADS.
-    -- 1.7.2: running is not one of them (aiming wins, as in DayZ: the click stops the run); a shove or Advanced
-    -- Movement's prone crawl only pause the sights. A fresh press of the run / sprint key lowers locked sights.
-    if s.mode == 4 and PVADS_setAimAllowed then
-        local why = nil
-        if not w then why = "no firearm in hand"
-        elseif not C.profile then why = "no ADS profile for this gun"
-        elseif not PVADS_canAds() then why = "view does not allow ADS (third person ADS off?)"
-        elseif reason and hard and reason ~= "running" and not C.PAUSE_REASONS[reason] then why = reason end
-        local allow = why == nil
-        if allow ~= C.aimAllowed or why ~= C.aimWhy then
-            C.aimAllowed, C.aimWhy = allow, why
-            PVADS_setAimAllowed(allow, why or "")
-        end
-        -- key lookup as vanilla MainOptions / Tutorial do it
-        local runDown = false
-        if KeybindId then
-            local core = getCore()
-            local runKey, sprintKey = core:getKey(KeybindId.RUN), core:getKey(KeybindId.SPRINT)
-            -- 1.8.7: a key that is also the Steady aim key steadies the raised sights instead of lowering them
-            -- (while aiming the game does not run or sprint anyway: IsoPlayer.updateInternal2 clears both)
-            local sk = s.steady and s.steadyKey or 0
-            runDown = (runKey ~= sk and isKeyDown(runKey)) or (sprintKey ~= sk and isKeyDown(sprintKey))
-        end
-        if runDown and not C.runWasDown and PVADS_aimLocked and PVADS_aimLocked() then
-            PVADS.log("aim: run / sprint key pressed -> sights lowered")
-            PVADS_clearAimLock()
-        end
-        C.runWasDown = runDown
-    end
     if shoving and not reason then reason, hard = "shove", true end
     setSuspended(shoving and (C.lastWant or C.suspended))   -- sights were up when the shove began: stay in first person
     if reason then
@@ -191,7 +161,6 @@ local function onPlayerUpdate(pl)
             C.keyTick = (C.keyTick or 0) + 1
             if C.keyTick >= 60 then C.keyTick = 0; if PVADS.refreshKeys then PVADS.refreshKeys() end end
             want = s.key ~= 0 and isKeyDown(s.key)
-        elseif s.mode == 4 then want = PVADS_aimLocked ~= nil and PVADS_aimLocked()
         else want = C.toggled end
         if C.forceADS then want = true end
     end
