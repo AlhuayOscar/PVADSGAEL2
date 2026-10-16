@@ -6,8 +6,27 @@ require "ISUI/ISTextEntryBox"
 require "ISUI/ISInventoryPaneContextMenu"
 require "RadioCom/ISUIRadio/ISSliderPanel"
 require "PVADS/PVADS_Calibrator"
+require "PVADS/PVADS_Locale"
 require "PVADS_GaelWeaponCatalog"
 require "PVADS_GaelVisualChoices"
+local L = PVADS.L
+
+local LABEL_ES = {
+    ["Sight X"] = "Mira X", ["Sight Y"] = "Mira Y", ["Sight Z"] = "Mira Z",
+    ["Relief"] = "Distancia ocular", ["Optic height"] = "Altura de la óptica",
+    ["Lens size"] = "Tamaño del lente", ["ADS time"] = "Tiempo de ADS",
+    ["PiP lens X"] = "Lente PiP X", ["PiP lens Y"] = "Lente PiP Y", ["PiP lens Z"] = "Lente PiP Z",
+    ["PiP lens size"] = "Tamaño del lente PiP", ["PiP zoom"] = "Zoom PiP",
+    ["ScopeLens Speed"] = "Velocidad del lente", ["ScopeLens Movement"] = "Movimiento del lente",
+    ["PiP reticle X"] = "Retícula PiP X", ["PiP reticle Y"] = "Retícula PiP Y",
+    ["PiP depth"] = "Profundidad PiP", ["Reticle roll"] = "Rotación de la retícula",
+    ["ADS FOV"] = "FOV al apuntar", ["Pitch"] = "Pitch", ["Yaw"] = "Yaw", ["Roll"] = "Roll",
+}
+local function fieldLabel(field) return L(field[2], LABEL_ES[field[2]] or field[2]) end
+local function realTimeDotLabel()
+    return L(PVADS.GaelRealTimeDot and "RealTimeDot: ON" or "RealTimeDot: OFF",
+        PVADS.GaelRealTimeDot and "Punto en tiempo real: ACTIVADO" or "Punto en tiempo real: DESACTIVADO")
+end
 
 -- Companion to the stock calibrator. Both windows write to the same user profile.
 PVADS.GaelRealTimeDot = true
@@ -21,7 +40,7 @@ local FIELDS = {
     {"adsTime", "ADS time", 0.005},
     {"pipX", "PiP lens X", 0.005}, {"pipY", "PiP lens Y", 0.005},
     {"pipZ", "PiP lens Z", 0.002}, {"pipScale", "PiP lens size", 0.005, 1},
-    {"pipZoom", "PiP zoom", 0.01, 1}, {"pipRetX", "PiP reticle X", 0.005},
+    {"pipZoom", "PiP zoom", 0.01, 1}, {"pipSpeed", "ScopeLens Speed", 0.1, 14, 0.5, 120}, {"pipMove", "ScopeLens Movement", 1, 0, 0, 100}, {"pipRetX", "PiP reticle X", 0.005},
     {"pipRetY", "PiP reticle Y", 0.005}, {"pipDepth", "PiP depth", 0.002},
 }
 -- Copy every saved optic profile from one weapon to compatible weapons.
@@ -40,12 +59,32 @@ local RETICLES = {
     {"Duplex", "duplex"}, {"Mil-dot", "mildot"},
     {"Post", "post"}, {"Eastern / PSO", "eastern"},
 }
+local RETICLE_ES = {
+    ["Auto (optic default)"] = "Auto (predeterminado de la mira)", ["None"] = "Ninguna",
+    ["Dot"] = "Punto", ["Holo circle"] = "Círculo holográfico",
+    ["OKP-7 arrow + bars"] = "OKP-7: flecha y barras", ["OKP-7 ring + dot"] = "OKP-7: anillo y punto",
+    ["OKP-7 double rings"] = "OKP-7: anillos dobles", ["Kobra T (solid)"] = "Kobra T (sólida)",
+    ["Kobra T (LED dots)"] = "Kobra T (puntos LED)", ["Kobra dot + chevron"] = "Kobra: punto y chevrón",
+    ["Kobra chevron"] = "Kobra: chevrón", ["Chevron"] = "Chevrón", ["Cross + dot"] = "Cruz y punto",
+    ["Duplex"] = "Dúplex", ["Mil-dot"] = "Mil-dot", ["Post"] = "Poste", ["Eastern / PSO"] = "Oriental / PSO",
+}
 local MODES = {
     {"Auto (optic default)", "auto"}, {"Iron", "iron"},
     {"Reflex", "reflex"}, {"Scope / PiP", "scope"},
     {"Scope G36 (ADS)", "scopeg36"},
     {"ScopeRedDotALT (ADS)", "scopereddotalt"},
 }
+local MODE_ES = {
+    ["Auto (optic default)"] = "Auto (predeterminado de la mira)", ["Iron"] = "Mira abierta",
+    ["Reflex"] = "Réflex", ["Scope / PiP"] = "Telescópica / PiP",
+    ["Scope G36 (ADS)"] = "Telescópica G36 (ADS)", ["ScopeRedDotALT (ADS)"] = "ScopeRedDotALT (ADS)",
+}
+local function visualChoiceLabel(options, spanishLabels, value)
+    for _, option in ipairs(options) do
+        if option[2] == value then return L(option[1], spanishLabels[option[1]]) end
+    end
+    return tostring(value or "")
+end
 
 local function findOwned(container, itemId)
     if not container then return nil end
@@ -174,14 +213,25 @@ local function current(field, global)
         or value - PVADS.GaelEffectiveGlobalValue(p, field[1])
 end
 
+local function clampField(field, amount, global)
+    if field[1] == "pipSpeed" then
+        local low, high = global and -13.5 or (field[5] or 0.5), global and 106 or (field[6] or 120)
+        return math.max(low, math.min(high, tonumber(amount) or (field[4] or 14)))
+    elseif field[1] == "pipMove" then
+        return math.max(-100, math.min(100, tonumber(amount) or 0))
+    end
+    return amount
+end
+
 local function apply(field, amount, global)
     local key = global and PVADS.GaelGlobalKey or selected()
     if not key then return false end
+    amount = clampField(field, amount, global)
     PVADS.User[key] = PVADS.User[key] or {}
     if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[key] = nil end
     PVADS.User[key][field[1]] = amount
     PVADS.Controller.refresh(true)
-    return true
+    return true, amount
 end
 
 local function markerScale()
@@ -212,7 +262,7 @@ PVADSGaelSliderWindow = ISCollapsableWindow:derive("PVADSGaelSliderWindow")
 
 function PVADSGaelSliderWindow:new(x, y)
     local o = ISCollapsableWindow.new(self, x, y, 610, 690)
-    o.title = "Project Viewpoint - slider calibrator"
+    o.title = L("Project Viewpoint - slider calibrator", "Project Viewpoint - calibrador de perfiles")
     o.resizable = false
     o.rangeLevel = 1
     o.editGlobal = false
@@ -225,10 +275,18 @@ function PVADSGaelSliderWindow:rangeFor(row, centre)
     row.centre = centre
     local span = row.field[3] * 200 * RANGES[self.rangeLevel]
     local minimum = centre - span
+    local maximum = centre + span
     if row.field[1] == "lensScale" or row.field[1] == "pipScale" or row.field[1] == "pipZoom" then
         minimum = math.max(0.001, minimum)
+    elseif row.field[1] == "pipSpeed" then
+        local low, high = self.editGlobal and -13.5 or (row.field[5] or 0.5), self.editGlobal and 106 or (row.field[6] or 120)
+        minimum = math.max(low, minimum)
+        maximum = math.min(high, maximum)
+    elseif row.field[1] == "pipMove" then
+        minimum = math.max(-100, minimum)
+        maximum = math.min(100, maximum)
     end
-    row.slider:setValues(minimum, centre + span, row.field[3], row.field[3], true)
+    row.slider:setValues(minimum, maximum, row.field[3], row.field[3], true)
     row.slider:setCurrentValue(centre, true)
 end
 
@@ -237,13 +295,13 @@ function PVADSGaelSliderWindow:createChildren()
     local y = self:titleBarHeight() + 7
     local bh = getTextManager():getFontHeight(UIFont.Small) + 7
 
-    self.availableButton = ISButton:new(8, y, 220, bh, "Solo disponibles: NO", self,
+    self.availableButton = ISButton:new(8, y, 220, bh, L("Only available: NO", "Solo disponibles: NO"), self,
         PVADSGaelSliderWindow.onAvailable)
     self.availableButton:initialise(); self:addChild(self.availableButton)
     self.availableButton:setVisible(false)
-    self.localButton = ISButton:new(306, y, 143, bh, "[Modificar Local]", self, PVADSGaelSliderWindow.onLocal)
+    self.localButton = ISButton:new(306, y, 143, bh, L("[Edit Local]", "[Modificar local]"), self, PVADSGaelSliderWindow.onLocal)
     self.localButton:initialise(); self:addChild(self.localButton)
-    self.globalButton = ISButton:new(454, y, 143, bh, "Modificar Global", self, PVADSGaelSliderWindow.onGlobal)
+    self.globalButton = ISButton:new(454, y, 143, bh, L("Edit Global", "Modificar global"), self, PVADSGaelSliderWindow.onGlobal)
     self.globalButton:initialise(); self:addChild(self.globalButton)
     self.scopeY = y + 3
     y = y + bh + 8
@@ -264,13 +322,13 @@ function PVADSGaelSliderWindow:createChildren()
     self.reticleCombo = ISComboBox:new(75, y, 220, bh, self, PVADSGaelSliderWindow.onReticleChosen)
     self.reticleCombo:initialise(); self.reticleCombo:instantiate()
     for _, option in ipairs(RETICLES) do
-        self.reticleCombo:addOptionWithData(option[1], option[2])
+        self.reticleCombo:addOptionWithData(L(option[1], RETICLE_ES[option[1]]), option[2])
     end
     self:addChild(self.reticleCombo)
     self.modeCombo = ISComboBox:new(375, y, 220, bh, self, PVADSGaelSliderWindow.onModeChosen)
     self.modeCombo:initialise(); self.modeCombo:instantiate()
     for _, option in ipairs(MODES) do
-        self.modeCombo:addOptionWithData(option[1], option[2])
+        self.modeCombo:addOptionWithData(L(option[1], MODE_ES[option[1]]), option[2])
     end
     self:addChild(self.modeCombo)
     y = y + bh + 6
@@ -284,7 +342,7 @@ function PVADSGaelSliderWindow:createChildren()
     self.choiceInfoY = y + bh + 4
     y = y + bh + 23
     self.recoilPitchReverseButton = ISButton:new(8, y, 220, bh,
-        "RecoilPitchYawReverse?: NO", self, PVADSGaelSliderWindow.onRecoilPitchReverse)
+        L("Reverse recoil Pitch/Yaw?: NO", "¿Invertir Pitch/Yaw del retroceso?: NO"), self, PVADSGaelSliderWindow.onRecoilPitchReverse)
     self.recoilPitchReverseButton:initialise(); self:addChild(self.recoilPitchReverseButton)
     y = y + bh + 6
     for i, field in ipairs(FIELDS) do
@@ -312,19 +370,19 @@ function PVADSGaelSliderWindow:createChildren()
         b:initialise(); self:addChild(b)
         return b
     end
-    self.rangeButton = button(8, "Range x1", PVADSGaelSliderWindow.onRange)
-    button(106, "Center", PVADSGaelSliderWindow.onCenter)
-    self.holdButton = button(204, "Hold ADS", PVADSGaelSliderWindow.onHold)
-    button(302, "Reset", PVADSGaelSliderWindow.onReset)
-    button(400, "Copy", PVADSGaelSliderWindow.onCopy)
-    self.saveButton = button(498, "Save", PVADSGaelSliderWindow.onSave)
+    self.rangeButton = button(8, L("Range x1", "Rango x1"), PVADSGaelSliderWindow.onRange)
+    button(106, L("Center", "Centrar"), PVADSGaelSliderWindow.onCenter)
+    self.holdButton = button(204, L("Hold ADS", "Mantener ADS"), PVADSGaelSliderWindow.onHold)
+    button(302, L("Reset", "Restablecer"), PVADSGaelSliderWindow.onReset)
+    button(400, L("Copy", "Copiar"), PVADSGaelSliderWindow.onCopy)
+    self.saveButton = button(498, L("Save", "Guardar"), PVADSGaelSliderWindow.onSave)
     y = y + bh + 4
-    button(8, "Probe", PVADSGaelSliderWindow.onProbe)
-    button(106, "Validate", PVADSGaelSliderWindow.onValidate)
-    self.realTimeDotButton = button(204, PVADS.GaelRealTimeDot and "RealTimeDot: ON" or "RealTimeDot: OFF", PVADSGaelSliderWindow.onRealTimeDot, 140)
-    self.copyLensButton = button(350, "Copiar perfiles", PVADSGaelSliderWindow.onCopyLens, 96)
+    button(8, L("Probe", "Analizar"), PVADSGaelSliderWindow.onProbe)
+    button(106, L("Validate", "Validar"), PVADSGaelSliderWindow.onValidate)
+    self.realTimeDotButton = button(204, realTimeDotLabel(), PVADSGaelSliderWindow.onRealTimeDot, 140)
+    self.copyLensButton = button(350, L("Copy profiles", "Copiar perfiles"), PVADSGaelSliderWindow.onCopyLens, 96)
     self.pipAltButton = button(450, "PiP ALT", PVADSGaelSliderWindow.onPipAlt, 76)
-    button(530, "Close", PVADSGaelSliderWindow.close, 76)
+    button(530, L("Close", "Cerrar"), PVADSGaelSliderWindow.close, 76)
     self.infoY = y + bh + 10
     self:addMarkerScaleControl()
 end
@@ -350,7 +408,7 @@ function PVADSGaelSliderWindow:syncRecoilPitchReverse()
     local values = key and PVADS.User[key]
     local reverse = recoilReverseEnabled(values)
     if self.recoilPitchReverseButton then
-        self.recoilPitchReverseButton:setTitle("RecoilPitchYawReverse?: " .. (reverse and "SI" or "NO"))
+        self.recoilPitchReverseButton:setTitle(L("Reverse recoil Pitch/Yaw?: ", "¿Invertir Pitch/Yaw del retroceso?: ") .. (reverse and L("YES", "SÍ") or L("NO", "NO")))
         self.recoilPitchReverseButton:setVisible(not self.editGlobal)
     end
 end
@@ -359,7 +417,7 @@ function PVADSGaelSliderWindow:onRecoilPitchReverse()
     if self.editGlobal then return end
     local key = selected()
     if not key then
-        self.message = "Equipa un arma para cambiar su perfil de recoil"
+        self.message = L("Equip a weapon to change its recoil profile", "Equipa un arma para cambiar su perfil de retroceso")
         return
     end
     PVADS.User[key] = PVADS.User[key] or {}
@@ -369,9 +427,9 @@ function PVADSGaelSliderWindow:onRecoilPitchReverse()
     PVADS.Controller.refresh(true)
     self:syncRecoilPitchReverse()
     self.message = enabled
-        and "Pitch y yaw del recoil invertidos para este perfil (pulsa Save para guardar)"
-        or "Pitch y yaw del recoil normales para este perfil (pulsa Save para guardar)"
-    self.saveButton:setTitle("Save")
+        and L("Recoil Pitch/Yaw reversed for this profile (press Save)", "Pitch/Yaw del retroceso invertidos para este perfil (pulsa Guardar)")
+        or L("Recoil Pitch/Yaw normal for this profile (press Save)", "Pitch/Yaw del retroceso normales para este perfil (pulsa Guardar)")
+    self.saveButton:setTitle(L("Save", "Guardar"))
 end
 
 function PVADSGaelSliderWindow:onMarkerScale(value)
@@ -380,7 +438,7 @@ function PVADSGaelSliderWindow:onMarkerScale(value)
     PVADS.User[key] = PVADS.User[key] or {}
     PVADS.User[key].markerScale = value
     self.markerDirty = true
-    self.message = string.format("Separacion global x%.2f (Save para conservar)", value)
+    self.message = string.format(L("Global marker spacing x%.2f (Save to keep)", "Separación global x%.2f (Guardar para conservar)"), value)
     pushMarkerScale()
 end
 
@@ -393,22 +451,22 @@ function PVADSGaelSliderWindow:equipSelected()
     local item = findOwned(pl:getInventory(), itemId)
     if not item then
         if not ScriptManager.instance:getItem(itemId) then
-            self.message = "Item unavailable: " .. itemId
+            self.message = L("Item unavailable: ", "Objeto no disponible: ") .. itemId
             return
         end
         item = pl:getInventory():AddItem(itemId)
     end
     if not item or not instanceof(item, "HandWeapon") or not item:isAimedFirearm() then
-        self.message = "ADS firearm unavailable: " .. itemId
+        self.message = L("ADS firearm unavailable: ", "Arma de fuego ADS no disponible: ") .. itemId
         return
     end
     PVADS.Controller.forceADS = true
     if pl:getPrimaryHandItem() ~= item then
         ISInventoryPaneContextMenu.equipWeapon(item, true, item:isTwoHandWeapon(), pl:getPlayerNum())
-        self.message = "Equipping " .. itemId .. "; hold Ctrl to aim"
+        self.message = L("Equipping ", "Equipando ") .. itemId .. L("; hold Ctrl to aim", "; mantén Ctrl para apuntar")
     else
         PVADS.Controller.refresh(true)
-        self.message = "Ready: " .. itemId .. "; hold Ctrl to aim"
+        self.message = L("Ready: ", "Listo: ") .. itemId .. L("; hold Ctrl to aim", "; mantén Ctrl para apuntar")
     end
     return item
 end
@@ -438,7 +496,7 @@ function PVADSGaelSliderWindow:syncAttachmentOptions(weapon)
     end
     if self.attachmentWeaponId == itemId and self.attachments then return end
     self.attachmentWeaponId = itemId
-    self.attachments = { { id = false, name = "Sin mira" } }
+    self.attachments = { { id = false, name = L("No sight", "Sin mira") } }
     self.attachmentIndex = 1
     local player = getSpecificPlayer(0)
     weapon = weapon or (player and findOwned(player:getInventory(), itemId))
@@ -510,20 +568,20 @@ function PVADSGaelSliderWindow:applyAttachmentSelection()
     -- firearm in hand, so that would change profile values without changing its optic.
     local weapon = held and itemId and held:getFullType() == itemId and held or nil
     if not attachment or not player or not weapon then
-        self.message = "Espera a que se equipe el arma seleccionada antes de cambiar su mira"
+        self.message = L("Wait for the selected weapon to equip before changing its sight", "Espera a que se equipe el arma seleccionada antes de cambiar su mira")
         return false
     end
     if attachment.mountId then
         local mount = instanceItem(attachment.mountId)
         local partType = mount and mount:getPartType()
         if partType and not replaceWeaponPart(player, weapon, attachment.mountId, partType) then
-            self.message = "No se pudo instalar la montura " .. attachment.mountId
+            self.message = L("Could not install mount: ", "No se pudo instalar la montura: ") .. attachment.mountId
             return false
         end
     end
     if attachment.id then
         if not replaceWeaponPart(player, weapon, attachment.id, "Scope") then
-            self.message = "No se pudo instalar la mira " .. attachment.id
+            self.message = L("Could not install sight: ", "No se pudo instalar la mira: ") .. attachment.id
             return false
         end
     else
@@ -538,15 +596,15 @@ function PVADSGaelSliderWindow:applyAttachmentSelection()
     end
     local installed = weapon:getWeaponPart("Scope")
     if attachment.id and (not installed or installed:getFullType() ~= attachment.id) then
-        self.message = "El juego no instaló la mira " .. attachment.id
+        self.message = L("The game did not install the sight: ", "El juego no instaló la mira: ") .. attachment.id
         return false
     elseif not attachment.id and installed then
-        self.message = "No se pudo retirar la mira actual"
+        self.message = L("Could not remove the current sight", "No se pudo retirar la mira actual")
         return false
     end
     PVADS.Controller.refresh(true)
-    self.message = attachment.id and ("Mira de prueba: " .. attachment.id)
-        or "Mira retirada para probar los hierros"
+    self.message = attachment.id and (L("Test sight: ", "Mira de prueba: ") .. attachment.id)
+        or L("Sight removed for iron-sight testing", "Mira retirada para probar las miras abiertas")
     return true
 end
 
@@ -564,12 +622,12 @@ function PVADSGaelSliderWindow:onNextAttachment() self:stepAttachment(1) end
 function PVADSGaelSliderWindow:setEditGlobal(global)
     if self.editGlobal == global then return end
     self.editGlobal = global
-    self.localButton:setTitle(global and "Modificar Local" or "[Modificar Local]")
-    self.globalButton:setTitle(global and "[Modificar Global]" or "Modificar Global")
-    self.saveButton:setTitle((global or self.globalDirty) and "Confirmar?" or "Save")
+    self.localButton:setTitle(global and L("Edit Local", "Modificar local") or "[" .. L("Edit Local", "Modificar local") .. "]")
+    self.globalButton:setTitle(global and "[" .. L("Edit Global", "Modificar global") .. "]" or L("Edit Global", "Modificar global"))
+    self.saveButton:setTitle((global or self.globalDirty) and L("Confirm?", "¿Confirmar?") or L("Save", "Guardar"))
     self.availableButton:setVisible(global)
     self.availableButton:setTitle(PVADS.GaelGlobalOnlyAvailable()
-        and "[Solo disponibles: SI]" or "Solo disponibles: NO")
+        and "[" .. L("Available only: YES", "Solo disponibles: SÍ") .. "]" or L("Available only: NO", "Solo disponibles: NO"))
     self.reticleCombo:setVisible(not global)
     self.modeCombo:setVisible(not global)
     if self.pipAltButton then self.pipAltButton:setVisible(not global) end
@@ -577,8 +635,8 @@ function PVADSGaelSliderWindow:setEditGlobal(global)
     self.attachmentNextButton:setVisible(not global)
     self:syncRecoilPitchReverse()
     self:onCenter()
-    self.message = global and "Global: 0 = sin cambio; los valores se SUMAN a todas las armas y miras"
-        or "Local: editando solo el arma y mira equipadas"
+    self.message = global and L("Global: 0 = unchanged; values are ADDED to all weapons and sights", "Global: 0 = sin cambios; los valores se SUMAN a todas las armas y miras")
+        or L("Local: editing only the equipped weapon and sight", "Local: editando solo el arma y la mira equipadas")
 end
 
 function PVADSGaelSliderWindow:onLocal() self:setEditGlobal(false) end
@@ -590,21 +648,21 @@ function PVADSGaelSliderWindow:onAvailable()
     PVADS.User[key].onlyAvailable = PVADS.GaelGlobalOnlyAvailable() and nil or 1
     self.globalDirty = true
     self.availableButton:setTitle(PVADS.GaelGlobalOnlyAvailable()
-        and "[Solo disponibles: SI]" or "Solo disponibles: NO")
+        and "[" .. L("Available only: YES", "Solo disponibles: SÍ") .. "]" or L("Available only: NO", "Solo disponibles: NO"))
     PVADS.Controller.refresh(true)
     self.message = PVADS.GaelGlobalOnlyAvailable()
-        and "Solo disponibles: excluye cada valor calibrado explicitamente, incluso 0"
-        or "Global: aplica a todos, incluidos los perfiles calibrados"
+        and L("Available only: skips every explicitly calibrated value, including 0", "Solo disponibles: omite cada valor calibrado explícitamente, incluso 0")
+        or L("Global: applies to all, including calibrated profiles", "Global: se aplica a todos, incluidos los perfiles calibrados")
 end
 
 function PVADSGaelSliderWindow:onRealTimeDot()
     PVADS.GaelRealTimeDot = not PVADS.GaelRealTimeDot
     if self.realTimeDotButton then
-        self.realTimeDotButton:setTitle(PVADS.GaelRealTimeDot and "RealTimeDot: ON" or "RealTimeDot: OFF")
+        self.realTimeDotButton:setTitle(realTimeDotLabel())
     end
     self.message = PVADS.GaelRealTimeDot
-        and "RealTimeDot: ON - Recoil y Sway activos durante la calibracion"
-        or "RealTimeDot: OFF - Vista estatica para calibrar"
+        and L("RealTimeDot: ON - Recoil and sway active during calibration", "RealTimeDot: ON - retroceso y balanceo activos durante la calibración")
+        or L("RealTimeDot: OFF - Static view for calibration", "RealTimeDot: OFF - vista estática para calibrar")
     PVADS.Controller.refresh(true)
 end
 
@@ -622,7 +680,7 @@ function PVADSGaelSliderWindow:applyChoice(field, choice)
     local key = selected()
     if not key then return end
     if field == "mode" and choice == "scopeg36" and not string.match(key, "^Base%.G36|") then
-        self.message = "Scope G36 (ADS) solo se aplica al G36"
+        self.message = L("Scope G36 (ADS) only applies to the G36", "Scope G36 (ADS) solo se aplica al G36")
         self:syncChoices()
         return
     end
@@ -638,10 +696,12 @@ function PVADSGaelSliderWindow:applyChoice(field, choice)
     PVADS.Controller.refresh(true)
     if field == "mode" and choice == "scopereddotalt" then
         local saved = PVADS.saveUserProfiles()
-        self.message = saved and "ScopeRedDotALT guardado para esta arma y mira"
-            or "ScopeRedDotALT aplicado; no se pudo guardar"
+        self.message = saved and L("ScopeRedDotALT saved for this weapon and sight", "ScopeRedDotALT guardado para esta arma y mira")
+            or L("ScopeRedDotALT applied; could not save", "ScopeRedDotALT aplicado; no se pudo guardar")
     else
-        self.message = field .. " = " .. (choice == "auto" and "optic default" or choice)
+        local options, spanishLabels = field == "mode" and MODES or RETICLES, field == "mode" and MODE_ES or RETICLE_ES
+        self.message = L(field == "mode" and "ADS mode" or "Reticle", field == "mode" and "Modo ADS" or "Retícula")
+            .. " = " .. visualChoiceLabel(options, spanishLabels, choice)
     end
 end
 
@@ -659,7 +719,7 @@ function PVADSGaelSliderWindow:onPipAlt()
     if self.editGlobal then return end
     local key = selected()
     if not key then
-        self.message = "Equipa un arma con scope para aplicar PiP ALT"
+        self.message = L("Equip a weapon with a scope to apply PiP ALT", "Equipa un arma con mira telescópica para aplicar PiP ALT")
         return
     end
     PVADS.User[key] = PVADS.User[key] or {}
@@ -674,21 +734,22 @@ function PVADSGaelSliderWindow:onPipAlt()
     PVADS.Controller.refresh(true)
     self:syncChoices()
     print("[PVADSGAEL2][PiP ALT] applied key=" .. tostring(key) .. " overlayDot=red mode=reflex")
-    self.message = "PiP ALT: punto rojo propio sobre el eje del arma; pulsa Save"
-    if self.saveButton then self.saveButton:setTitle("Save") end
+    self.message = L("PiP ALT: custom red dot on the weapon axis; press Save", "PiP ALT: punto rojo propio sobre el eje del arma; pulsa Guardar")
+    if self.saveButton then self.saveButton:setTitle(L("Save", "Guardar")) end
 end
 
 function PVADSGaelSliderWindow:onSlide(amount, slider)
     local row = self.rows[slider.pvRow]
     if not row then return end
-    if apply(row.field, amount, self.editGlobal) then
+    local appliedOK, applied = apply(row.field, amount, self.editGlobal)
+    if appliedOK then
         if self.editGlobal then
             self.globalDirty = true
-            self.saveButton:setTitle("Confirmar?")
+            self.saveButton:setTitle(L("Confirm?", "¿Confirmar?"))
         end
-        row.entry:setText(string.format("%.5f", amount))
-        self.message = (self.editGlobal and "Global +/- " or "Local ")
-            .. row.field[2] .. " = " .. string.format("%.5f", amount)
+        row.entry:setText(string.format("%.5f", applied))
+        self.message = (self.editGlobal and L("Global +/- ", "Global +/- ") or L("Local ", "Local "))
+            .. fieldLabel(row.field) .. " = " .. string.format("%.5f", applied)
     end
 end
 
@@ -697,16 +758,20 @@ function PVADSGaelSliderWindow:applyTyped(box)
     local amount = tonumber(box:getText())
     if not amount then
         box:setText(string.format("%.5f", current(row.field, self.editGlobal)))
-        self.message = "Enter a number"
+        self.message = L("Enter a number", "Introduce un número")
         return
     end
-    if math.abs(amount - current(row.field, self.editGlobal)) > 0.0000001
-        and apply(row.field, amount, self.editGlobal) then
-        if self.editGlobal then
-            self.globalDirty = true
-            self.saveButton:setTitle("Confirmar?")
+    amount = clampField(row.field, amount, self.editGlobal)
+    if math.abs(amount - current(row.field, self.editGlobal)) > 0.0000001 then
+        local appliedOK, applied = apply(row.field, amount, self.editGlobal)
+        if appliedOK then
+            if self.editGlobal then
+                self.globalDirty = true
+                self.saveButton:setTitle(L("Confirm?", "¿Confirmar?"))
+            end
+            box:setText(string.format("%.5f", applied))
+            self:rangeFor(row, applied)
         end
-        self:rangeFor(row, amount)
     end
 end
 
@@ -731,23 +796,23 @@ function PVADSGaelSliderWindow:onSightArrowKey(key, stepMultiplier)
 
     if not row then return end
     stepMultiplier = math.max(1, math.min(8, tonumber(stepMultiplier) or 1))
-    local value = current(row.field, self.editGlobal) + direction * row.field[3] * stepMultiplier
+    local value = clampField(row.field, current(row.field, self.editGlobal) + direction * row.field[3] * stepMultiplier, self.editGlobal)
     if apply(row.field, value, self.editGlobal) then
         self:rangeFor(row, value)
         row.slider:setCurrentValue(value, true)
         row.entry:setText(string.format("%.5f", value))
         if self.editGlobal then
             self.globalDirty = true
-            self.saveButton:setTitle("Confirmar?")
+            self.saveButton:setTitle(L("Confirm?", "¿Confirmar?"))
         end
-        self.message = (self.editGlobal and "Global +/- " or "Local ")
-            .. row.field[2] .. " = " .. string.format("%.5f", value)
+        self.message = (self.editGlobal and L("Global +/- ", "Global +/- ") or L("Local ", "Local "))
+            .. fieldLabel(row.field) .. " = " .. string.format("%.5f", value)
     end
 end
 
 function PVADSGaelSliderWindow:onRange()
     self.rangeLevel = self.rangeLevel % #RANGES + 1
-    self.rangeButton:setTitle("Range x" .. RANGES[self.rangeLevel])
+    self.rangeButton:setTitle(L("Range x", "Rango x") .. RANGES[self.rangeLevel])
     self:onCenter()
 end
 
@@ -769,9 +834,9 @@ end
 
 function PVADSGaelSliderWindow:onHold()
     PVADS.Controller.forceADS = not PVADS.Controller.forceADS
-    self.holdButton:setTitle(PVADS.Controller.forceADS and "Release" or "Hold ADS")
+    self.holdButton:setTitle(PVADS.Controller.forceADS and L("Release", "Soltar") or L("Hold ADS", "Mantener ADS"))
     if Cal.window and Cal.window.btnHold then
-        Cal.window.btnHold:setTitle(PVADS.Controller.forceADS and "Release" or "Hold ADS")
+        Cal.window.btnHold:setTitle(PVADS.Controller.forceADS and L("Release", "Soltar") or L("Hold ADS", "Mantener ADS"))
     end
 end
 
@@ -787,17 +852,17 @@ function PVADSGaelSliderWindow:onReset()
     PVADS.Controller.refresh(true)
     self:onCenter()
     self:syncChoices()
-    self.message = "Reset " .. key
+    self.message = L("Reset ", "Restablecido: ") .. key
 end
 
 function PVADSGaelSliderWindow:onCopy()
     if self.editGlobal then
-        self.message = "Los offsets globales se guardan con Confirmar?; Copy es solo local"
+        self.message = L("Global offsets are saved with Confirm?; Copy is local only", "Los valores globales se guardan con ¿Confirmar?; Copiar solo afecta al perfil local")
         return
     end
     local snippet = Cal.snippet()
     Clipboard.setClipboard(snippet)
-    self.message = "Copied current profile"
+    self.message = L("Copied current profile", "Perfil actual copiado")
 end
 
 local function canOpticFitWeapon(player, weaponId, opticId, mounts)
@@ -838,19 +903,19 @@ function PVADSGaelSliderWindow:onCopyLens()
     local sourceKey = selected()
     local profile = PVADS.Controller and PVADS.Controller.profile
     if not sourceKey or not profile then
-        self.message = "Equipa el arma que usaras como origen"
+        self.message = L("Equip the weapon you want to use as the source", "Equipa el arma que quieras usar como origen")
         return
     end
     if self.editGlobal then
-        self.message = "Cambia al perfil del arma; la copia usa perfiles individuales, no Global"
+        self.message = L("Switch to the weapon profile; copying uses individual profiles, not Global", "Cambia al perfil del arma; la copia usa perfiles individuales, no el modo global")
         return
     end
     local player = getSpecificPlayer(0)
-    if not player then self.message = "Jugador no disponible"; return end
+    if not player then self.message = L("Player unavailable", "Jugador no disponible"); return end
 
     local sourceWeaponId = string.match(sourceKey, "^([^|]*)|")
     if not sourceWeaponId then
-        self.message = "No se pudo identificar el arma de origen"
+        self.message = L("Could not identify the source weapon", "No se pudo identificar el arma de origen")
         return
     end
 
@@ -882,7 +947,7 @@ function PVADSGaelSliderWindow:onCopyLens()
     for opticId in pairs(sourceProfiles) do opticIds[#opticIds + 1] = opticId end
     table.sort(opticIds)
     if #opticIds == 0 then
-        self.message = "El arma de origen no tiene perfiles guardados de miras"
+        self.message = L("The source weapon has no saved sight profiles", "El arma de origen no tiene perfiles guardados de miras")
         return
     end
 
@@ -908,7 +973,7 @@ function PVADSGaelSliderWindow:onCopyLens()
     local weaponCount = 0
     for _ in pairs(targetWeapons) do weaponCount = weaponCount + 1 end
     if #entries == 0 then
-        self.message = "No hay armas destino con perfiles compatibles para estas miras"
+        self.message = L("No target weapons have compatible profiles for these sights", "No hay armas destino con perfiles compatibles para estas miras")
         return
     end
     self.pendingLensCopy = {
@@ -916,14 +981,14 @@ function PVADSGaelSliderWindow:onCopyLens()
         entries = entries, targetWeaponCount = weaponCount,
     }
     local modal = ISModalDialog:new(0, 0, 540, 150,
-        string.format("Copiar %d perfiles de mira de %s a %d armas (%d perfiles)?",
+        string.format(L("Copy %d sight profiles from %s to %d weapons (%d profiles)?", "¿Copiar %d perfiles de mira de %s a %d armas (%d perfiles)?"),
             #opticIds, sourceWeaponId, weaponCount, #entries), true,
         self, PVADSGaelSliderWindow.onConfirmCopyLens)
-    modal.gaelInfo = "Se copian todos los valores de cada mira compatible; el perfil sin mira se omite."
+    modal.gaelInfo = L("All values from each compatible sight are copied; the no-sight profile is skipped.", "Se copian todos los valores de cada mira compatible; se omite el perfil sin mira.")
     modal.prerender = function(dialog)
         ISModalDialog.prerender(dialog)
         dialog:drawText(dialog.gaelInfo, 18, 48, 0.9, 0.85, 0.55, 1, UIFont.Small)
-        dialog:drawText("No hace falta tener montura instalada. Los perfiles existentes de destino se reemplazaran por completo.",
+        dialog:drawText(L("A mount does not need to be installed. Existing target profiles will be fully replaced.", "No hace falta tener una montura instalada. Los perfiles existentes de destino se reemplazarán por completo."),
             18, 68, 0.9, 0.9, 0.9, 1, UIFont.Small)
     end
     modal:initialise(); modal:addToUIManager()
@@ -934,7 +999,7 @@ function PVADSGaelSliderWindow:onConfirmCopyLens(button)
     self.pendingLensCopy = nil
     if not pending then return end
     if button.internal ~= "YES" then
-        self.message = "Copia de perfiles cancelada"
+        self.message = L("Profile copy cancelled", "Copia de perfiles cancelada")
         return
     end
     for _, entry in ipairs(pending.entries) do
@@ -947,15 +1012,15 @@ function PVADSGaelSliderWindow:onConfirmCopyLens(button)
         pending.sourceWeaponId, pending.sourceProfileCount, pending.targetWeaponCount,
         #pending.entries, tostring(saved)))
     self.message = saved
-        and string.format("%d perfiles copiados a %d armas (%d perfiles)%s",
+        and string.format(L("Copied %d profiles to %d weapons (%d profiles)%s", "Se copiaron %d perfiles a %d armas (%d perfiles)%s"),
             pending.sourceProfileCount, pending.targetWeaponCount, #pending.entries,
-            " desde " .. pending.sourceWeaponId)
-        or "Copia aplicada pero no se pudo guardar"
+            L(" from ", " desde ") .. pending.sourceWeaponId)
+        or L("Copy applied, but could not be saved", "Copia aplicada, pero no se pudo guardar")
 end
 
 function PVADSGaelSliderWindow:onSave()
     if self.editGlobal or self.globalDirty then
-        local lines = { string.format("Punto morado global x%.2f", markerScale()) }
+        local lines = { string.format(L("Global purple marker x%.2f", "Punto morado global x%.2f"), markerScale()) }
         for _, field in ipairs(FIELDS) do
             local value = PVADS.GaelGlobalValue(field[1])
             if value ~= 0 then
@@ -963,8 +1028,8 @@ function PVADSGaelSliderWindow:onSave()
             end
         end
         local message = PVADS.GaelGlobalOnlyAvailable()
-            and "Confirmar Solo disponibles para todas las armas y miras?"
-            or "Confirmar para TODAS las armas y miras?"
+            and L("Confirm Available only for all weapons and sights?", "¿Confirmar Solo disponibles para todas las armas y miras?")
+            or L("Confirm for ALL weapons and sights?", "¿Confirmar para TODAS las armas y miras?")
         local height = 130 + math.min(#lines, 10) * 18
         local modal = ISModalDialog:new(0, 0, 520, height, message, true,
             self, PVADSGaelSliderWindow.onConfirmGlobalSave)
@@ -972,7 +1037,7 @@ function PVADSGaelSliderWindow:onSave()
         modal.prerender = function(dialog)
             ISModalDialog.prerender(dialog)
             if #dialog.gaelLines == 0 then
-                dialog:drawText("Todos los offsets estan en 0", 18, 49, 1, 0.85, 0.5, 1, UIFont.Small)
+                dialog:drawText(L("All offsets are 0", "Todos los valores están en 0"), 18, 49, 1, 0.85, 0.5, 1, UIFont.Small)
             else
                 for i, line in ipairs(dialog.gaelLines) do
                     local col = math.floor((i - 1) / 10)
@@ -981,7 +1046,7 @@ function PVADSGaelSliderWindow:onSave()
                         1, 0.85, 0.5, 1, UIFont.Small)
                 end
             end
-            dialog:drawText("Si eliges No, la vista previa sigue activa pero sin guardar.",
+            dialog:drawText(L("If you choose No, the preview stays active but is not saved.", "Si eliges No, la vista previa seguirá activa, pero no se guardará."),
                 18, dialog:getHeight() - 62, 0.75, 0.8, 0.9, 1, UIFont.Small)
         end
         modal:initialise(); modal:addToUIManager()
@@ -989,31 +1054,31 @@ function PVADSGaelSliderWindow:onSave()
     end
     local saved = PVADS.saveUserProfiles()
     if saved then self.markerDirty = false end
-    self.message = saved and "Saved to PVADS_UserProfiles.txt" or "Save failed"
+    self.message = saved and L("Saved to PVADS_UserProfiles.txt", "Guardado en PVADS_UserProfiles.txt") or L("Save failed", "No se pudo guardar")
 end
 
 function PVADSGaelSliderWindow:onConfirmGlobalSave(button)
     if button.internal ~= "YES" then
-        self.message = "Global sin guardar; puedes seguir ajustando o usar Reset"
+        self.message = L("Global changes not saved; keep adjusting or use Reset", "Cambios globales sin guardar; puedes seguir ajustando o restablecer")
         return
     end
     if PVADS.saveUserProfiles() then
         self.globalDirty = false
         self.markerDirty = false
-        self.saveButton:setTitle(self.editGlobal and "Confirmar?" or "Save")
-        self.message = "Offsets globales guardados en PVADS_UserProfiles.txt"
+        self.saveButton:setTitle(self.editGlobal and L("Confirm?", "¿Confirmar?") or L("Save", "Guardar"))
+        self.message = L("Global offsets saved to PVADS_UserProfiles.txt", "Valores globales guardados en PVADS_UserProfiles.txt")
     else
-        self.message = "Save failed"
+        self.message = L("Save failed", "No se pudo guardar")
     end
 end
 
 function PVADSGaelSliderWindow:onProbe()
-    self.message = PVADS_probe and tostring(PVADS_probe()) or "Probe unavailable"
+    self.message = PVADS_probe and tostring(PVADS_probe()) or L("Probe unavailable", "Análisis no disponible")
 end
 
 function PVADSGaelSliderWindow:onValidate()
     if PVADS.Validate then
-        self.message = "Validation: " .. tostring(PVADS.Validate()) .. " finding(s); see console"
+        self.message = L("Validation: ", "Validación: ") .. tostring(PVADS.Validate()) .. L(" finding(s); see console", " resultado(s); consulta la consola")
     end
 end
 
@@ -1044,30 +1109,30 @@ function PVADSGaelSliderWindow:render()
         self:syncChoices()
     end
     if not self.editGlobal then
-        self:drawText("Editar valores:", 8, self.scopeY, 1, 1, 1, 1, UIFont.Small)
+        self:drawText(L("Edit values:", "Editar valores:"), 8, self.scopeY, 1, 1, 1, 1, UIFont.Small)
     end
-    self:drawText("Weapon", 8, self.weaponY, 1, 1, 1, 1, UIFont.Small)
-    self:drawText("Hold Ctrl to aim; V toggles ADS. Selecting a weapon enables Hold ADS.", 8, self.weaponY + 22, 0.7, 0.85, 1, 1, UIFont.Small)
+    self:drawText(L("Weapon", "Arma"), 8, self.weaponY, 1, 1, 1, 1, UIFont.Small)
+    self:drawText(L("Hold Ctrl to aim; V toggles ADS. Selecting a weapon enables Hold ADS.", "Mantén Ctrl para apuntar; V activa o desactiva ADS. Elegir un arma habilita Mantener ADS."), 8, self.weaponY + 22, 0.7, 0.85, 1, 1, UIFont.Small)
     if self.editGlobal then
-        self:drawText("Global +/- : las barras parten de 0; Solo disponibles protege valores ya editados", 8, self.choiceY,
+        self:drawText(L("Global +/-: sliders start at 0; Available only protects edited values", "Global +/-: las barras parten de 0; Solo disponibles protege los valores ya editados"), 8, self.choiceY,
             1, 0.8, 0.4, 1, UIFont.Small)
     else
-        self:drawText("Retícula", 8, self.choiceY, 1, 1, 1, 1, UIFont.Small)
-        self:drawText("Modo ADS", 306, self.choiceY, 1, 1, 1, 1, UIFont.Small)
-        self:drawText("Mira / attachment", 8, self.attachmentY + 3, 1, 1, 1, 1, UIFont.Small)
+        self:drawText(L("Reticle", "Retícula"), 8, self.choiceY, 1, 1, 1, 1, UIFont.Small)
+        self:drawText(L("ADS mode", "Modo ADS"), 306, self.choiceY, 1, 1, 1, 1, UIFont.Small)
+        self:drawText(L("Sight / attachment", "Mira / accesorio"), 8, self.attachmentY + 3, 1, 1, 1, 1, UIFont.Small)
         local attachment = self.attachments and self.attachments[self.attachmentIndex]
-        self:drawText(attachment and attachment.name or "Selecciona un arma", 158, self.attachmentY + 3,
+        self:drawText(attachment and attachment.name or L("Select a weapon", "Selecciona un arma"), 158, self.attachmentY + 3,
             0.8, 0.9, 1, 1, UIFont.Small)
     end
     local profile = PVADS.Controller.profile
     if profile then
-        self:drawText((self.editGlobal and "Vista previa: " or "Actual: ")
-            .. tostring(profile.reticle) .. " / " .. tostring(profile.mode),
+        self:drawText((self.editGlobal and L("Preview: ", "Vista previa: ") or L("Current: ", "Actual: "))
+            .. visualChoiceLabel(RETICLES, RETICLE_ES, profile.reticle) .. " / " .. visualChoiceLabel(MODES, MODE_ES, profile.mode),
             8, self.choiceInfoY, 0.65, 0.85, 1, 1, UIFont.Small)
     end
-    if self.pipY then self:drawText("Picture-in-picture (scopes / red dots)", 8, self.pipY, 0.55, 0.85, 1, 1, UIFont.Small) end
+    if self.pipY then self:drawText(L("Picture-in-picture (scopes / red dots)", "Imagen en imagen (visores / puntos rojos)"), 8, self.pipY, 0.55, 0.85, 1, 1, UIFont.Small) end
     for _, row in ipairs(self.rows) do
-        self:drawText(row.field[2], 8, row.y + 3, 1, 1, 1, 1, UIFont.Small)
+        self:drawText(fieldLabel(row.field), 8, row.y + 3, 1, 1, 1, 1, UIFont.Small)
         local n = current(row.field, self.editGlobal)
         if not row.slider.dragInside then
             if n < row.slider.minValue or n > row.slider.maxValue then self:rangeFor(row, n)
@@ -1083,13 +1148,13 @@ function PVADSGaelSliderWindow:render()
         if not self.markerScaleSlider.dragInside then
             self.markerScaleSlider:setCurrentValue(scale, true)
         end
-        self:drawText("Punto morado x", 8, self.markerScaleY + 3, 1, 0.8, 0.4, 1, UIFont.Small)
+        self:drawText(L("Purple marker x", "Punto morado x"), 8, self.markerScaleY + 3, 1, 0.8, 0.4, 1, UIFont.Small)
         self:drawText(string.format("x%.2f", scale), 556, self.markerScaleY + 3,
             1, 0.8, 0.4, 1, UIFont.Small)
     end
-    self:drawText(key or "No firearm equipped", 8, self.infoY, 0.85, 0.85, 0.85, 1, UIFont.Small)
+    self:drawText(key or L("No firearm equipped", "No hay un arma de fuego equipada"), 8, self.infoY, 0.85, 0.85, 0.85, 1, UIFont.Small)
     if self.holdButton then
-        self.holdButton:setTitle(PVADS.Controller.forceADS and "Release" or "Hold ADS")
+        self.holdButton:setTitle(PVADS.Controller.forceADS and L("Release", "Soltar") or L("Hold ADS", "Mantener ADS"))
     end
     if self.message then self:drawText(self.message, 8, self.infoY + 18, 1, 0.9, 0.4, 1, UIFont.Small) end
 end

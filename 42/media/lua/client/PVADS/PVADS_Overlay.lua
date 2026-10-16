@@ -1,6 +1,8 @@
 -- Project Viewpoint: Recoil & ADS - (c) 2026 the author of Project Viewpoint (Workshop 3812612054). All rights reserved.
 -- Not open source: do not copy, modify, reuse or redistribute without permission (see LICENSE.txt).
 require "ISUI/ISUIElement"
+require "PVADS/PVADS_Locale"
+local L = PVADS.L
 require "PVADS/PVADS_Controller"
 
 --[[
@@ -173,9 +175,9 @@ function PVADSOverlay:drawPresenceDebug()
     if onScreen(pres.hx) then self:drawRect(pres.hx - 6, pres.hy - 6, 13, 13, 0.9, 1, 0.1, 0.1) end
     local x, y, fh = 20, self.height * 0.25, 18
     local lines = {
-        string.format("Weapon presence: amount %.2f  view block %.2f  sight %s", a, pres.viewBlock or 0, pres.adsBlocked and "BLOCKED" or "free"),
-        string.format("probe: %s  need %.2f m  hit at %.2f m", tostring(pres.type), pres.need or 0, pres.hitDist or 0),
-        string.format("gun: %.2f m (%s, %s)  pose pitch %.1f  yaw %.1f deg", pres.length or 0, tostring(pres.source), tostring(pres.family), pres.pitch or 0, pres.yaw or 0),
+        string.format(L("Weapon presence: amount %.2f  view block %.2f  sight %s", "Presencia del arma: nivel %.2f  bloqueo de vista %.2f  mira %s"), a, pres.viewBlock or 0, pres.adsBlocked and L("BLOCKED", "BLOQUEADA") or L("free", "libre")),
+        string.format(L("probe: %s  need %.2f m  hit at %.2f m", "sondeo: %s  requiere %.2f m  impacto a %.2f m"), tostring(pres.type), pres.need or 0, pres.hitDist or 0),
+        string.format(L("gun: %.2f m (%s, %s)  pose pitch %.1f  yaw %.1f deg", "arma: %.2f m (%s, %s)  inclinación %.1f  giro %.1f grados"), pres.length or 0, tostring(pres.source), tostring(pres.family), pres.pitch or 0, pres.yaw or 0),
     }
     self:drawRect(x - 6, y - 4, 520, #lines * fh + 8, 0.55, 0, 0, 0)
     for i, l in ipairs(lines) do self:drawText(l, x, y + (i - 1) * fh, 1, 1, 1, 1, UIFont.Small) end
@@ -188,7 +190,7 @@ function PVADSOverlay:drawScopeHud()
     if not hud then return end
     local parts = {}
     if hud.zoom then parts[#parts + 1] = hud.zoom end
-    if hud.zero then parts[#parts + 1] = "Zero " .. hud.zero end
+    if hud.zero then parts[#parts + 1] = L("Zero ", "Cero: ") .. hud.zero end
     local text = table.concat(parts, "   ")
     local font = UIFont.Medium
     local tm = getTextManager()
@@ -221,7 +223,9 @@ end
 
 --- 1.9.0 weapon rest: a small word next to the breath bar while the gun rests (sights up)
 local restState = {}
-local REST_WORDS = { [1] = "PRONE", [2] = "RESTED", [3] = "BIPOD" }
+local REST_WORDS = {
+    [1] = L("PRONE", "TENDIDO"), [2] = L("RESTED", "APOYADO"), [3] = L("BIPOD", "BÍPODE"),
+}
 function PVADSOverlay:drawRest()
     if not PVADS_getRest or not PVADS.Settings.rest then return end
     PVADS_getRest(restState)
@@ -251,13 +255,8 @@ function PVADSOverlay:render()
             self.lensSince = self.lensSince or now
             local k = math.min(1, (now - self.lensSince) / 120)
             if state.pipMode then if state.pip then self:drawPip(p, k) end; return end
-            -- keep the lens near the centre: the gun's axis drifts with sway/recoil, the eye box shows it
-            local cx, cy, R = self.width / 2, self.height / 2, state.lensR or 300
-            local dx, dy = (state.lensX or cx) - cx, (state.lensY or cy) - cy
-            local d = math.sqrt(dx * dx + dy * dy)
-            local maxD = R * 0.12
-            if d > maxD then dx, dy = dx * maxD / d, dy * maxD / d end
-            state.lensX, state.lensY = cx + dx, cy + dy
+            -- Use the actual projected optic position. Do not pin the lens
+            -- mask to screen centre: it must move with the weapon and recoil.
             self:drawScope(p, k)
         else
             self.lensSince = nil
