@@ -32,7 +32,7 @@ function P.ownsKey(key)
     if not enabled() or not PVADS.Controller.ready then return false end
     local s = PVADS.Settings
     if PVADS.refreshKeys then PVADS.refreshKeys() end
-    if key ~= s.key or s.mode == 1 or s.mode == 4 then return false end   -- aim / click modes do not use the ADS key
+    if key ~= s.key or s.mode == 1 then return false end   -- aim mode does not use the ADS key
     local pl = getSpecificPlayer(0)
     if not gunInHand(pl) or pl:getVehicle() then return false end
     return PVADS_canAds and PVADS_canAds() and true or false

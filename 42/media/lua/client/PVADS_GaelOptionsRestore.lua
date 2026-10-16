@@ -102,7 +102,8 @@ local function applyPVADSOptions()
         })
     end
     if PVADS_setDeveloper then PVADS_setDeveloper(s.developer and true or false) end
-    if PVADS_setClickAim then PVADS_setClickAim(s.mode == 4) end
+    if tonumber(s.mode) == 4 or tonumber(s.mode) == nil then s.mode = 1 end
+    if PVADS_setClickAim then PVADS_setClickAim(false) end
 end
 
 local function buildPVADSModOptions()
@@ -111,11 +112,10 @@ local function buildPVADSModOptions()
     local s = PVADS and PVADS.Settings or {}
 
     optsPVADS:addTitle("Aim down sights")
-    local m = optsPVADS:addComboBox("adsControl", "ADS control", "How sights are raised with a firearm. DayZ style: click the aim button (right mouse) to bring the sights up and keep them there, click again to lower them; hold it for ordinary hip aiming.")
-    m:addItem("Aim (right mouse) raises the sights", (s.mode or 4) == 1)
-    m:addItem("Hold the ADS key while aiming", (s.mode or 4) == 2)
-    m:addItem("Hip fire; ADS key toggles sights (remembered)", (s.mode or 4) == 3)
-    m:addItem("DayZ: click right mouse = sights, hold = hip fire", (s.mode or 4) == 4)
+    local m = optsPVADS:addComboBox("adsControl", "ADS control", "Choose how the sights are raised.")
+    m:addItem("Aim (right mouse) raises the sights", (s.mode or 1) == 1)
+    m:addItem("Hold the ADS key while aiming", (s.mode or 1) == 2)
+    m:addItem("Hip fire; ADS key toggles sights (remembered)", (s.mode or 1) == 3)
     optsPVADS:addKeyBind("key", "ADS key", s.key or Keyboard.KEY_V, "Used by the hold and toggle modes.")
     optsPVADS:addTickBox("aimPriority", "Aiming takes priority over menus", s.aimPriority ~= false)
     optsPVADS:addTickBox("thirdAds", "ADS from third person switches to first person", s.thirdAds ~= false)

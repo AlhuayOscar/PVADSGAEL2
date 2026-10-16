@@ -7,5 +7,6 @@
   "UI_optionscreen_binding_PVADSGAEL2:ZeroDown": "Zeroing down",
   "UI_optionscreen_binding_PVADSGAEL2:Calibrator": "ADS calibrator (developer mode)",
   "UI_optionscreen_binding_PVADSGAEL2:Steady": "Steady aim (hold, sights up)",
-  "UI_optionscreen_binding_PVADSGAEL2:Bipod": "Bipod deploy / fold"
+  "UI_optionscreen_binding_PVADSGAEL2:Bipod": "Bipod deploy / fold",
+  "UI_PVADSGAEL2_Language": "en"
 }

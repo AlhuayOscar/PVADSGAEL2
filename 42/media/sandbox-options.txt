@@ -1,5 +1,7 @@
 VERSION = 1,
 
+VERSION = 1,
+
 option PVADSGAEL2.InputDiagnostics
 {
     type = boolean,
@@ -151,4 +153,415 @@ option RebuildingKnoxDemo.SpawnWithShelterKit
     page = RebuildingKnoxDemo,
     translation = RebuildingKnoxDemo_SpawnWithShelterKit,
     _tooltip = RebuildingKnoxDemo_SpawnWithShelterKit_tooltip,
+}
+
+option VTB.Enabled
+{
+    type = boolean,
+    default = true,
+    page = VTB,
+    translation = VTB_Enabled,
+}
+
+option VTB.UseInIsoView
+{
+    type = boolean,
+    default = false,
+    page = VTB,
+    translation = VTB_UseInIsoView,
+}
+
+option VTB.VelocityScale
+{
+    type = double,
+    min = 0.05,
+    max = 3.0,
+    default = 0.4,
+    page = VTB,
+    translation = VTB_VelocityScale,
+}
+
+option VTB.GravityScale
+{
+    type = double,
+    min = 0.0,
+    max = 10.0,
+    default = 1.0,
+    page = VTB,
+    translation = VTB_GravityScale,
+}
+
+option VTB.DragScale
+{
+    type = double,
+    min = 0.0,
+    max = 10.0,
+    default = 1.0,
+    page = VTB,
+    translation = VTB_DragScale,
+}
+
+option VTB.DamageFalloff
+{
+    type = double,
+    min = 0.0,
+    max = 1.0,
+    default = 0.5,
+    page = VTB,
+    translation = VTB_DamageFalloff,
+}
+
+option VTB.ProjectileLifetime
+{
+    type = double,
+    min = 0.2,
+    max = 20.0,
+    default = 3.0,
+    page = VTB,
+    translation = VTB_ProjectileLifetime,
+}
+
+option VTB.MaxDistanceMultiplier
+{
+    type = double,
+    min = 1.0,
+    max = 20.0,
+    default = 3.0,
+    page = VTB,
+    translation = VTB_MaxDistanceMultiplier,
+}
+
+option VTB.MaxDistanceCap
+{
+    type = double,
+    min = 10.0,
+    max = 1000.0,
+    default = 200.0,
+    page = VTB,
+    translation = VTB_MaxDistanceCap,
+}
+
+option VTB.ZeroDistance
+{
+    type = double,
+    min = 0.0,
+    max = 1000.0,
+    default = 0.0,
+    page = VTB,
+    translation = VTB_ZeroDistance,
+}
+
+option VTB.SpreadScale
+{
+    type = double,
+    min = 0.0,
+    max = 10.0,
+    default = 1.0,
+    page = VTB,
+    translation = VTB_SpreadScale,
+}
+
+option VTB.Penetration
+{
+    type = boolean,
+    default = true,
+    page = VTB,
+    translation = VTB_Penetration,
+}
+
+option VTB.HitLocations
+{
+    type = boolean,
+    default = true,
+    page = VTB,
+    translation = VTB_HitLocations,
+}
+
+option VTB.FurnitureCollision
+{
+    type = boolean,
+    default = true,
+    page = VTB,
+    translation = VTB_FurnitureCollision,
+}
+
+option VTB.ServerValidation
+{
+    type = boolean,
+    default = true,
+    page = VTB,
+    translation = VTB_ServerValidation,
+}
+
+option ViewpointThrowables.Enabled
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_Enabled,
+}
+
+option ViewpointThrowables.StrengthMultiplier
+{
+    type = double,
+    min = 0.25,
+    max = 3.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_StrengthMultiplier,
+}
+
+option ViewpointThrowables.MinThrowSpeed
+{
+    type = double,
+    min = 0.5,
+    max = 20.0,
+    default = 5.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_MinThrowSpeed,
+}
+
+option ViewpointThrowables.MaxThrowSpeed
+{
+    type = double,
+    min = 2.0,
+    max = 40.0,
+    default = 16.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_MaxThrowSpeed,
+}
+
+option ViewpointThrowables.ChargeTime
+{
+    type = double,
+    min = 0.1,
+    max = 6.0,
+    default = 1.1,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ChargeTime,
+}
+
+option ViewpointThrowables.EnableUnderhand
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_EnableUnderhand,
+}
+
+option ViewpointThrowables.EnableRolling
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_EnableRolling,
+}
+
+option ViewpointThrowables.MomentumInfluence
+{
+    type = double,
+    min = 0.0,
+    max = 1.5,
+    default = 0.6,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_MomentumInfluence,
+}
+
+option ViewpointThrowables.ImpactDamage
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ImpactDamage,
+}
+
+option ViewpointThrowables.ImpactDamageMultiplier
+{
+    type = double,
+    min = 0.0,
+    max = 5.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ImpactDamageMultiplier,
+}
+
+option ViewpointThrowables.PlayerImpactDamage
+{
+    type = boolean,
+    default = false,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_PlayerImpactDamage,
+}
+
+option ViewpointThrowables.ZombieDistraction
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ZombieDistraction,
+}
+
+option ViewpointThrowables.DistractionMultiplier
+{
+    type = double,
+    min = 0.0,
+    max = 4.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_DistractionMultiplier,
+}
+
+option ViewpointThrowables.ObjectThrowing
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ObjectThrowing,
+}
+
+option ViewpointThrowables.MaxObjectWeight
+{
+    type = double,
+    min = 0.1,
+    max = 10.0,
+    default = 3.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_MaxObjectWeight,
+}
+
+option ViewpointThrowables.GrenadeBounceMultiplier
+{
+    type = double,
+    min = 0.0,
+    max = 2.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_GrenadeBounceMultiplier,
+}
+
+option ViewpointThrowables.ObjectBounceMultiplier
+{
+    type = double,
+    min = 0.0,
+    max = 2.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ObjectBounceMultiplier,
+}
+
+option ViewpointThrowables.WindowBreaking
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_WindowBreaking,
+}
+
+option ViewpointThrowables.ServerValidation
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ServerValidation,
+}
+
+option ViewpointThrowables.MaxPreview
+{
+    type = enum,
+    numValues = 3,
+    default = 3,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_MaxPreview,
+}
+
+option ViewpointThrowables.AllowCooking
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_AllowCooking,
+}
+
+option ViewpointThrowables.MaxActivePerPlayer
+{
+    type = integer,
+    min = 1,
+    max = 50,
+    default = 6,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_MaxActivePerPlayer,
+}
+
+option ViewpointThrowables.ThrowCooldown
+{
+    type = double,
+    min = 0.0,
+    max = 3.0,
+    default = 0.35,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_ThrowCooldown,
+}
+
+option ViewpointThrowables.GravityMultiplier
+{
+    type = double,
+    min = 0.2,
+    max = 3.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_GravityMultiplier,
+}
+
+option ViewpointThrowables.DebugLogging
+{
+    type = boolean,
+    default = false,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_DebugLogging,
+}
+
+option ViewpointThrowables.AllowDebugDraw
+{
+    type = boolean,
+    default = false,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_AllowDebugDraw,
+}
+
+option ViewpointThrowables.FlashbangBlinds
+{
+    type = boolean,
+    default = true,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_FlashbangBlinds,
+}
+
+option ViewpointThrowables.FlashbangRange
+{
+    type = double,
+    min = 4.0,
+    max = 40.0,
+    default = 16.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_FlashbangRange,
+}
+
+option ViewpointThrowables.FireDamageMultiplier
+{
+    type = double,
+    min = 0.0,
+    max = 5.0,
+    default = 1.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_FireDamageMultiplier,
+}
+
+option ViewpointThrowables.LauncherSpeed
+{
+    type = double,
+    min = 10.0,
+    max = 90.0,
+    default = 32.0,
+    page = ViewpointThrowables,
+    translation = ViewpointThrowables_LauncherSpeed,
 }
