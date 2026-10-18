@@ -27,8 +27,9 @@ if not PVADS.gaelVisualChoicesInstalled then
         relief = true, fovMul = true, opticHeight = true,
         lensScale = true, adsTime = true,
         pipX = true, pipY = true, pipZ = true,
-        pipScale = true, pipZoom = true,
+        pipScale = true, pipZoom = true, pipSpeed = true, pipMove = true,
         pipRetX = true, pipRetY = true, pipDepth = true,
+        pipAnchorX = true, pipAnchorY = true, pipAnchorZ = true,
     }
     local unitDefaults = { lensScale = true, pipScale = true, pipZoom = true }
     local okp7DefaultProfile = {
@@ -108,7 +109,7 @@ if not PVADS.gaelVisualChoicesInstalled then
     local lastResolvedProfileDiagnostic = {}
     local function diagnosticValues(values)
         if not values then return "none" end
-        local fields = { "adjX", "adjY", "adjZ", "adjPitch", "adjYaw", "adjRoll", "fovMul", "relief", "lensScale", "pipScale", "pipZoom", "adsTime", "mode", "reticle", "pipAlt", "recoilPitchReverse" }
+        local fields = { "adjX", "adjY", "adjZ", "adjPitch", "adjYaw", "adjRoll", "fovMul", "relief", "lensScale", "pipScale", "pipZoom", "pipDepth", "pipAnchorX", "pipAnchorY", "pipAnchorZ", "pipAnchorClip", "pipAnchorScale", "pipCropX", "pipCropY", "adsTime", "mode", "reticle", "pipAlt", "recoilPitchReverse" }
         local out = {}
         for _, name in ipairs(fields) do
             local value = values[name]
@@ -199,7 +200,7 @@ if not PVADS.gaelVisualChoicesInstalled then
         -- stable for both render paths.
         local opticUser = profile.userWeapon
         if opticUser then
-            for _, name in ipairs({ "pipScale", "pipZoom", "pipX", "pipY", "pipZ", "pipRetX", "pipRetY", "pipDepth" }) do
+            for _, name in ipairs({ "pipScale", "pipZoom", "pipX", "pipY", "pipZ", "pipRetX", "pipRetY", "pipDepth", "pipAnchorX", "pipAnchorY", "pipAnchorZ", "pipAnchorClip", "pipAnchorScale", "pipCropX", "pipCropY" }) do
                 if opticUser[name] ~= nil then profile[name] = tonumber(opticUser[name]) or profile[name] end
             end
             if opticUser.lensScale ~= nil and (profile.mode == "scope"

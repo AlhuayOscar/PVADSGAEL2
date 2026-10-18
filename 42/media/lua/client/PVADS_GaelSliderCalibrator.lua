@@ -19,7 +19,12 @@ local LABEL_ES = {
     ["PiP lens size"] = "Tamaño del lente PiP", ["PiP zoom"] = "Zoom PiP",
     ["ScopeLens Speed"] = "Velocidad del lente", ["ScopeLens Movement"] = "Movimiento del lente",
     ["PiP reticle X"] = "Retícula PiP X", ["PiP reticle Y"] = "Retícula PiP Y",
-    ["PiP depth"] = "Profundidad PiP", ["Reticle roll"] = "Rotación de la retícula",
+    ["PiP depth"] = "Profundidad PiP", ["PiP anchor from muzzle X (m)"] = "Anclaje X (m)",
+    ["PiP anchor from muzzle Y (m)"] = "Anclaje Y (m)", ["PiP anchor from muzzle Z (m)"] = "Anclaje Z (m)",
+    ["Glass crop size"] = "Tamaño del recorte",
+    ["Glass crop center X"] = "Centro recorte X",
+    ["Glass crop center Y"] = "Centro recorte Y",
+    ["Reticle roll"] = "Rotación de la retícula",
     ["ADS FOV"] = "FOV al apuntar", ["Pitch"] = "Pitch", ["Yaw"] = "Yaw", ["Roll"] = "Roll",
 }
 local function fieldLabel(field) return L(field[2], LABEL_ES[field[2]] or field[2]) end
@@ -42,9 +47,55 @@ local FIELDS = {
     {"pipZ", "PiP lens Z", 0.002}, {"pipScale", "PiP lens size", 0.005, 1},
     {"pipZoom", "PiP zoom", 0.01, 1}, {"pipSpeed", "ScopeLens Speed", 0.1, 14, 0.5, 120}, {"pipMove", "ScopeLens Movement", 1, 0, 0, 100}, {"pipRetX", "PiP reticle X", 0.005},
     {"pipRetY", "PiP reticle Y", 0.005}, {"pipDepth", "PiP depth", 0.002},
+    {"pipAnchorX", "PiP anchor from muzzle X (m)", 0.001},
+    {"pipAnchorY", "PiP anchor from muzzle Y (m)", 0.001},
+    {"pipAnchorZ", "PiP anchor from muzzle Z (m)", 0.001},
+    {"pipAnchorScale", "Glass crop size", 0.01, 1},
+    {"pipCropX", "Glass crop center X", 0.01, 0},
+    {"pipCropY", "Glass crop center Y", 0.01, 0},
 }
+-- The range selector widens only spatial placement and physical sizing controls.
+-- Angles, FOV, ADS timing and zoom keep their original fine calibration span.
+local WIDE_RANGE_FIELDS = {
+    adjX = true, adjY = true, adjZ = true, relief = true, opticHeight = true,
+    lensScale = true, pipX = true, pipY = true, pipZ = true, pipScale = true,
+    pipRetX = true, pipRetY = true, pipDepth = true,
+    pipAnchorX = true, pipAnchorY = true, pipAnchorZ = true, pipAnchorScale = true, pipCropX = true, pipCropY = true,
+}
+local PAGE_OF_FIELD = {
+    adjX = 1, adjY = 1, adjZ = 1,
+    adjPitch = 2, adjYaw = 2, adjRoll = 2, relief = 2, fovMul = 2,
+    opticHeight = 2, lensScale = 2, adsTime = 2,
+    pipX = 3, pipY = 3, pipZ = 3, pipScale = 3, pipZoom = 3,
+    pipRetX = 3, pipRetY = 3, pipDepth = 3,
+    pipSpeed = 4, pipMove = 4, pipAnchorX = 4, pipAnchorY = 4, pipAnchorZ = 4, pipAnchorScale = 4, pipCropX = 4, pipCropY = 4,
+}
+local PAGES = {
+    { title = "1 - Posición del arma", titleEN = "1 - Weapon position", tab = "1 Arma", tabEN = "1 Weapon" },
+    { title = "2 - Orientación y ajustes de mira", titleEN = "2 - Sight angles and settings", tab = "2 Alineación", tabEN = "2 Alignment" },
+    { title = "3 - PiP y retícula", titleEN = "3 - PiP and reticle", tab = "3 PiP / Mira", tabEN = "3 PiP / Sight" },
+    { title = "4 - Vidrio: anclaje y movimiento", titleEN = "4 - Glass anchor and movement", tab = "4 Vidrio", tabEN = "4 Glass" },
+}
+local PAGE_FILE = "PVADS_GaelCalibratorPage.txt"
+local function loadPagePreference()
+    if not getFileReader then return 3 end
+    local ok, reader = pcall(getFileReader, PAGE_FILE, false)
+    if not ok or not reader then return 3 end
+    local line = reader:readLine()
+    reader:close()
+    local value = tonumber(line and string.match(line, "page=(%d+)"))
+    return math.max(1, math.min(#PAGES, math.floor(value or 3)))
+end
+local function savePagePreference(page)
+    if not getFileWriter then return end
+    local ok, writer = pcall(getFileWriter, PAGE_FILE, true, false)
+    if not ok or not writer then return end
+    writer:write("page=" .. tostring(page) .. "\r\n")
+    writer:close()
+end
+PVADS.GaelCalibratorPage = PVADS.GaelCalibratorPage or loadPagePreference()
 -- Copy every saved optic profile from one weapon to compatible weapons.
-local RANGES = { 1, 5, 20 }
+local RANGES = { 1, 10, 50, 200 }
 local WEAPONS = PVADS_GaelWeaponCatalog or {}
 local PREVIEW_SCOPE_ITEMS
 local PREVIEW_MOUNT_ITEMS
@@ -219,6 +270,12 @@ local function clampField(field, amount, global)
         return math.max(low, math.min(high, tonumber(amount) or (field[4] or 14)))
     elseif field[1] == "pipMove" then
         return math.max(-100, math.min(100, tonumber(amount) or 0))
+    elseif field[1] == "pipAnchorScale" then
+        return math.max(0.05, math.min(8, tonumber(amount) or 1))
+    elseif field[1] == "pipCropX" or field[1] == "pipCropY" then
+        return math.max(-2, math.min(2, tonumber(amount) or 0))
+    elseif field[1] == "lensScale" or field[1] == "pipScale" then
+        return math.max(0.001, math.min(10, tonumber(amount) or (field[4] or 1)))
     end
     return amount
 end
@@ -261,10 +318,11 @@ end
 PVADSGaelSliderWindow = ISCollapsableWindow:derive("PVADSGaelSliderWindow")
 
 function PVADSGaelSliderWindow:new(x, y)
-    local o = ISCollapsableWindow.new(self, x, y, 610, 690)
+    local o = ISCollapsableWindow.new(self, x, y, 610, 520)
     o.title = L("Project Viewpoint - slider calibrator", "Project Viewpoint - calibrador de perfiles")
     o.resizable = false
-    o.rangeLevel = 1
+    o.rangeLevel = 3
+    o.page = PVADS.GaelCalibratorPage or 3
     o.editGlobal = false
     o.globalDirty = false
     o.rows = {}
@@ -273,11 +331,19 @@ end
 
 function PVADSGaelSliderWindow:rangeFor(row, centre)
     row.centre = centre
-    local span = row.field[3] * 200 * RANGES[self.rangeLevel]
+    local rangeMultiplier = WIDE_RANGE_FIELDS[row.field[1]] and RANGES[self.rangeLevel] or 1
+    local span = row.field[3] * 200 * rangeMultiplier
     local minimum = centre - span
     local maximum = centre + span
-    if row.field[1] == "lensScale" or row.field[1] == "pipScale" or row.field[1] == "pipZoom" then
+    if row.field[1] == "pipAnchorScale" then
+        minimum = math.max(0.05, minimum)
+        maximum = math.min(8, maximum)
+    elseif row.field[1] == "pipCropX" or row.field[1] == "pipCropY" then
+        minimum = math.max(-2, minimum)
+        maximum = math.min(2, maximum)
+    elseif row.field[1] == "lensScale" or row.field[1] == "pipScale" or row.field[1] == "pipZoom" then
         minimum = math.max(0.001, minimum)
+        if row.field[1] ~= "pipZoom" then maximum = math.min(10, maximum) end
     elseif row.field[1] == "pipSpeed" then
         local low, high = self.editGlobal and -13.5 or (row.field[5] or 0.5), self.editGlobal and 106 or (row.field[6] or 120)
         minimum = math.max(low, minimum)
@@ -299,6 +365,9 @@ function PVADSGaelSliderWindow:createChildren()
         PVADSGaelSliderWindow.onAvailable)
     self.availableButton:initialise(); self:addChild(self.availableButton)
     self.availableButton:setVisible(false)
+    self.rangeButton = ISButton:new(122, y, 112, bh, L("Pos range x50", "Rango pos. x50"), self,
+        PVADSGaelSliderWindow.onRange)
+    self.rangeButton:initialise(); self:addChild(self.rangeButton)
     self.localButton = ISButton:new(306, y, 143, bh, L("[Edit Local]", "[Modificar local]"), self, PVADSGaelSliderWindow.onLocal)
     self.localButton:initialise(); self:addChild(self.localButton)
     self.globalButton = ISButton:new(454, y, 143, bh, L("Edit Global", "Modificar global"), self, PVADSGaelSliderWindow.onGlobal)
@@ -317,7 +386,23 @@ function PVADSGaelSliderWindow:createChildren()
     local next = ISButton:new(566, y, 30, bh, ">", self, PVADSGaelSliderWindow.onNextWeapon)
     next:initialise(); self:addChild(next)
     self.weaponY = y + 3
-    y = y + bh + 23
+    y = y + bh + 8
+    self.attachmentY = y
+    self.attachmentPrevButton = ISButton:new(120, y, 30, bh, "<", self, PVADSGaelSliderWindow.onPrevAttachment)
+    self.attachmentPrevButton:initialise(); self:addChild(self.attachmentPrevButton)
+    self.attachmentNextButton = ISButton:new(566, y, 30, bh, ">", self, PVADSGaelSliderWindow.onNextAttachment)
+    self.attachmentNextButton:initialise(); self:addChild(self.attachmentNextButton)
+    y = y + bh + 7
+    self.pageTabs = {}
+    local tabX, tabWidth, tabGap = 8, 144, 6
+    for page = 1, #PAGES do
+        local tab = ISButton:new(tabX + (page - 1) * (tabWidth + tabGap), y, tabWidth, bh,
+            L(PAGES[page].tabEN, PAGES[page].tab), self, PVADSGaelSliderWindow["onPage" .. page])
+        tab:initialise(); self:addChild(tab)
+        self.pageTabs[page] = tab
+    end
+    self.pageTitleY = y + bh + 5
+    y = y + 2 * bh + 23
     self.choiceY = y + 3
     self.reticleCombo = ISComboBox:new(75, y, 220, bh, self, PVADSGaelSliderWindow.onReticleChosen)
     self.reticleCombo:initialise(); self.reticleCombo:instantiate()
@@ -331,67 +416,122 @@ function PVADSGaelSliderWindow:createChildren()
         self.modeCombo:addOptionWithData(L(option[1], MODE_ES[option[1]]), option[2])
     end
     self:addChild(self.modeCombo)
-    y = y + bh + 6
-    self.attachmentY = y
-    self.attachmentPrevButton = ISButton:new(120, y, 30, bh, "<", self,
-        PVADSGaelSliderWindow.onPrevAttachment)
-    self.attachmentPrevButton:initialise(); self:addChild(self.attachmentPrevButton)
-    self.attachmentNextButton = ISButton:new(566, y, 30, bh, ">", self,
-        PVADSGaelSliderWindow.onNextAttachment)
-    self.attachmentNextButton:initialise(); self:addChild(self.attachmentNextButton)
-    self.choiceInfoY = y + bh + 4
-    y = y + bh + 23
     self.recoilPitchReverseButton = ISButton:new(8, y, 220, bh,
         L("Reverse recoil Pitch/Yaw?: NO", "¿Invertir Pitch/Yaw del retroceso?: NO"), self, PVADSGaelSliderWindow.onRecoilPitchReverse)
     self.recoilPitchReverseButton:initialise(); self:addChild(self.recoilPitchReverseButton)
-    y = y + bh + 6
+    self.rowsY = y + bh + 8
+    self.pageRowCount = { 0, 0, 0, 0 }
     for i, field in ipairs(FIELDS) do
-        if i == 12 then y = y + 16; self.pipY = y - 13 end
-        local entry = ISTextEntryBox:new(string.format("%.5f", current(field, self.editGlobal)), 117, y, 83, bh)
+        local page = PAGE_OF_FIELD[field[1]] or 1
+        self.pageRowCount[page] = self.pageRowCount[page] + 1
+        local rowY = self.rowsY + (self.pageRowCount[page] - 1) * (bh + 3)
+        local entry = ISTextEntryBox:new(string.format("%.5f", current(field, self.editGlobal)), 117, rowY, 83, bh)
         entry.font = UIFont.Small
         entry:initialise(); entry:instantiate()
         entry.pvRow = i; entry.pvOwner = self
         entry.onCommandEntered = function(box) box.pvOwner:applyTyped(box) end
         entry.onLostFocus = function(box) box.pvOwner:applyTyped(box) end
         self:addChild(entry)
-        local slider = ISSliderPanel:new(210, y, 388, bh, self, PVADSGaelSliderWindow.onSlide)
+        local slider = ISSliderPanel:new(210, rowY, 388, bh, self, PVADSGaelSliderWindow.onSlide)
         slider:initialise(); slider:instantiate()
         slider:setDoButtons(false)
         slider.pvRow = i
         self:addChild(slider)
-        local row = { field = field, entry = entry, slider = slider, y = y }
+        local row = { field = field, entry = entry, slider = slider, y = rowY, page = page }
         self.rows[i] = row
         self:rangeFor(row, current(field, self.editGlobal))
-        y = y + bh + 3
     end
-    y = y + 8
     local function button(x, label, callback, width)
-        local b = ISButton:new(x, y, width or 92, bh, label, self, callback)
+        local b = ISButton:new(x, 0, width or 92, bh, label, self, callback)
         b:initialise(); self:addChild(b)
         return b
     end
-    self.rangeButton = button(8, L("Range x1", "Rango x1"), PVADSGaelSliderWindow.onRange)
-    button(106, L("Center", "Centrar"), PVADSGaelSliderWindow.onCenter)
-    self.holdButton = button(204, L("Hold ADS", "Mantener ADS"), PVADSGaelSliderWindow.onHold)
-    button(302, L("Reset", "Restablecer"), PVADSGaelSliderWindow.onReset)
-    button(400, L("Copy", "Copiar"), PVADSGaelSliderWindow.onCopy)
-    self.saveButton = button(498, L("Save", "Guardar"), PVADSGaelSliderWindow.onSave)
-    y = y + bh + 4
-    button(8, L("Probe", "Analizar"), PVADSGaelSliderWindow.onProbe)
-    button(106, L("Validate", "Validar"), PVADSGaelSliderWindow.onValidate)
+    local centerButton = button(8, L("Center", "Centrar"), PVADSGaelSliderWindow.onCenter)
+    self.holdButton = button(106, L("Hold ADS", "Mantener ADS"), PVADSGaelSliderWindow.onHold)
+    local resetButton = button(204, L("Reset", "Restablecer"), PVADSGaelSliderWindow.onReset)
+    local copyButton = button(302, L("Copy", "Copiar"), PVADSGaelSliderWindow.onCopy)
+    self.saveButton = button(400, L("Save", "Guardar"), PVADSGaelSliderWindow.onSave)
+    local probeButton = button(8, L("Probe", "Analizar"), PVADSGaelSliderWindow.onProbe)
+    local validateButton = button(106, L("Validate", "Validar"), PVADSGaelSliderWindow.onValidate)
     self.realTimeDotButton = button(204, realTimeDotLabel(), PVADSGaelSliderWindow.onRealTimeDot, 140)
     self.copyLensButton = button(350, L("Copy profiles", "Copiar perfiles"), PVADSGaelSliderWindow.onCopyLens, 96)
+    self.glassAnchorButton = button(350, L("Align crop", "Alinear recorte"), PVADSGaelSliderWindow.onUseGlassAnchor, 96)
     self.pipAltButton = button(450, "PiP ALT", PVADSGaelSliderWindow.onPipAlt, 76)
-    button(530, L("Close", "Cerrar"), PVADSGaelSliderWindow.close, 76)
-    self.infoY = y + bh + 10
+    local closeButton = button(530, L("Close", "Cerrar"), PVADSGaelSliderWindow.close, 76)
+    self.footerRows = {
+        { centerButton, self.holdButton, resetButton, copyButton, self.saveButton },
+        { probeButton, validateButton, self.realTimeDotButton, self.copyLensButton, self.pipAltButton, closeButton },
+    }
     self:addMarkerScaleControl()
+    self:layoutPage()
 end
+
+function PVADSGaelSliderWindow:keepOnScreen()
+    local core = getCore and getCore()
+    if not core then return end
+    local margin = 10
+    local maxX = math.max(margin, core:getScreenWidth() - self:getWidth() - margin)
+    local maxY = math.max(margin, core:getScreenHeight() - self:getHeight() - margin)
+    local x = math.max(margin, math.min(maxX, self:getX()))
+    local y = math.max(margin, math.min(maxY, self:getY()))
+    if x ~= self:getX() then self:setX(x) end
+    if y ~= self:getY() then self:setY(y) end
+end
+
+function PVADSGaelSliderWindow:layoutPage()
+    local bh = getTextManager():getFontHeight(UIFont.Small) + 7
+    local gap = bh + 3
+    local rowIndex = 0
+    for _, row in ipairs(self.rows or {}) do
+        local visible = row.page == self.page
+        row.entry:setVisible(visible)
+        row.slider:setVisible(visible)
+        if visible then
+            rowIndex = rowIndex + 1
+            row.y = self.rowsY + (rowIndex - 1) * gap
+            row.entry:setY(row.y)
+            row.slider:setY(row.y)
+        end
+    end
+    if self.reticleCombo then self.reticleCombo:setVisible(self.page == 3) end
+    if self.modeCombo then self.modeCombo:setVisible(self.page == 3) end
+    if self.recoilPitchReverseButton then self.recoilPitchReverseButton:setVisible(self.page == 2) end
+    if self.copyLensButton then self.copyLensButton:setVisible(self.page ~= 4) end
+    if self.glassAnchorButton then self.glassAnchorButton:setVisible(self.page == 4 and not self.editGlobal) end
+    self:updateGlassAnchorButton()
+    for page, tab in ipairs(self.pageTabs or {}) do
+        local pageTab = L(PAGES[page].tabEN, PAGES[page].tab)
+        tab:setTitle((page == self.page and "[" or "") .. pageTab .. (page == self.page and "]" or ""))
+    end
+    local footerY = self.rowsY + rowIndex * gap + 6
+    for line, buttons in ipairs(self.footerRows or {}) do
+        for _, b in ipairs(buttons) do b:setY(footerY + (line - 1) * (bh + 4)) end
+    end
+    self.markerScaleY = footerY + 2 * (bh + 4) + 3
+    if self.markerScaleSlider then self.markerScaleSlider:setY(self.markerScaleY - 3) end
+    self.infoY = self.markerScaleY + bh + 8
+    self:setHeight(self.infoY + 42)
+    self:keepOnScreen()
+end
+
+function PVADSGaelSliderWindow:setPage(page)
+    page = math.max(1, math.min(#PAGES, math.floor(tonumber(page) or 1)))
+    self.page = page
+    PVADS.GaelCalibratorPage = page
+    savePagePreference(page)
+    self:layoutPage()
+    self:onCenter()
+end
+
+function PVADSGaelSliderWindow:onPage1() self:setPage(1) end
+function PVADSGaelSliderWindow:onPage2() self:setPage(2) end
+function PVADSGaelSliderWindow:onPage3() self:setPage(3) end
+function PVADSGaelSliderWindow:onPage4() self:setPage(4) end
 
 function PVADSGaelSliderWindow:addMarkerScaleControl()
     if self.markerScaleSlider then return end
     local bh = getTextManager():getFontHeight(UIFont.Small) + 7
-    self.markerScaleY = self.infoY
-    local slider = ISSliderPanel:new(165, self.markerScaleY - 3, 388, bh,
+    local slider = ISSliderPanel:new(165, 0, 388, bh,
         self, PVADSGaelSliderWindow.onMarkerScale)
     slider:initialise(); slider:instantiate()
     slider:setDoButtons(false)
@@ -399,8 +539,6 @@ function PVADSGaelSliderWindow:addMarkerScaleControl()
     slider:setCurrentValue(markerScale(), true)
     self:addChild(slider)
     self.markerScaleSlider = slider
-    self.infoY = self.infoY + bh + 8
-    self:setHeight(self.infoY + 48)
 end
 
 function PVADSGaelSliderWindow:syncRecoilPitchReverse()
@@ -409,7 +547,7 @@ function PVADSGaelSliderWindow:syncRecoilPitchReverse()
     local reverse = recoilReverseEnabled(values)
     if self.recoilPitchReverseButton then
         self.recoilPitchReverseButton:setTitle(L("Reverse recoil Pitch/Yaw?: ", "¿Invertir Pitch/Yaw del retroceso?: ") .. (reverse and L("YES", "SÍ") or L("NO", "NO")))
-        self.recoilPitchReverseButton:setVisible(not self.editGlobal)
+        self.recoilPitchReverseButton:setVisible(self.page == 2 and not self.editGlobal)
     end
 end
 
@@ -474,6 +612,7 @@ end
 function PVADSGaelSliderWindow:onWeaponChosen()
     local weapon = self:equipSelected()
     self:syncAttachmentOptions(weapon)
+    self:updateGlassAnchorButton()
 end
 
 function PVADSGaelSliderWindow:stepWeapon(delta)
@@ -633,6 +772,8 @@ function PVADSGaelSliderWindow:setEditGlobal(global)
     if self.pipAltButton then self.pipAltButton:setVisible(not global) end
     self.attachmentPrevButton:setVisible(not global)
     self.attachmentNextButton:setVisible(not global)
+    if self.glassAnchorButton then self.glassAnchorButton:setVisible(self.page == 4 and not global) end
+    self:updateGlassAnchorButton()
     self:syncRecoilPitchReverse()
     self:onCenter()
     self.message = global and L("Global: 0 = unchanged; values are ADDED to all weapons and sights", "Global: 0 = sin cambios; los valores se SUMAN a todas las armas y miras")
@@ -812,7 +953,7 @@ end
 
 function PVADSGaelSliderWindow:onRange()
     self.rangeLevel = self.rangeLevel % #RANGES + 1
-    self.rangeButton:setTitle(L("Range x", "Rango x") .. RANGES[self.rangeLevel])
+    self.rangeButton:setTitle(L("Pos range x", "Rango pos. x") .. RANGES[self.rangeLevel])
     self:onCenter()
 end
 
@@ -838,6 +979,30 @@ function PVADSGaelSliderWindow:onHold()
     if Cal.window and Cal.window.btnHold then
         Cal.window.btnHold:setTitle(PVADS.Controller.forceADS and L("Release", "Soltar") or L("Hold ADS", "Mantener ADS"))
     end
+end
+
+function PVADSGaelSliderWindow:onUseGlassAnchor()
+    local key = selected()
+    if not key then return end
+    PVADS.User[key] = PVADS.User[key] or {}
+    local enabled = tonumber(PVADS.User[key].pipAnchorClip) or 0
+    PVADS.User[key].pipAnchorClip = enabled > 0.5 and 0 or 1
+    if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[key] = nil end
+    PVADS.Controller.refresh(true)
+    self:updateGlassAnchorButton()
+    self.message = PVADS.User[key].pipAnchorClip > 0.5
+        and L("Glass crop now follows the calibrated anchor", "El recorte del vidrio ahora sigue el anclaje calibrado")
+        or L("Automatic glass crop restored", "Se restableció el recorte automático del vidrio")
+end
+
+function PVADSGaelSliderWindow:updateGlassAnchorButton()
+    if not self.glassAnchorButton then return end
+    local key = selected()
+    local profile = key and PVADS.User and PVADS.User[key]
+    local enabled = profile and (tonumber(profile.pipAnchorClip) or 0) > 0.5
+    self.glassAnchorButton:setTitle(enabled
+        and L("Crop aligned", "Recorte alineado")
+        or L("Align crop", "Alinear recorte"))
 end
 
 function PVADSGaelSliderWindow:onReset()
@@ -1090,6 +1255,7 @@ end
 
 function PVADSGaelSliderWindow:render()
     ISCollapsableWindow.render(self)
+    self:keepOnScreen()
     if self.isCollapsed then return end
     local key = selected()
     if key ~= self.lastKey then
@@ -1113,34 +1279,33 @@ function PVADSGaelSliderWindow:render()
     end
     self:drawText(L("Weapon", "Arma"), 8, self.weaponY, 1, 1, 1, 1, UIFont.Small)
     self:drawText(L("Hold Ctrl to aim; V toggles ADS. Selecting a weapon enables Hold ADS.", "Mantén Ctrl para apuntar; V activa o desactiva ADS. Elegir un arma habilita Mantener ADS."), 8, self.weaponY + 22, 0.7, 0.85, 1, 1, UIFont.Small)
-    if self.editGlobal then
-        self:drawText(L("Global +/-: sliders start at 0; Available only protects edited values", "Global +/-: las barras parten de 0; Solo disponibles protege los valores ya editados"), 8, self.choiceY,
-            1, 0.8, 0.4, 1, UIFont.Small)
-    else
+    self:drawText(L("Sight / attachment", "Mira / accesorio"), 8, self.attachmentY + 3, 1, 1, 1, 1, UIFont.Small)
+    local attachment = self.attachments and self.attachments[self.attachmentIndex]
+    self:drawText(attachment and attachment.name or L("Select a weapon", "Selecciona un arma"), 158, self.attachmentY + 3,
+        0.8, 0.9, 1, 1, UIFont.Small)
+    local pageInfo = PAGES[self.page] or PAGES[1]
+    self:drawText(L(pageInfo.titleEN, pageInfo.title), 8, self.pageTitleY, 1, 0.85, 0.45, 1, UIFont.Small)
+    if self.page == 3 then
         self:drawText(L("Reticle", "Retícula"), 8, self.choiceY, 1, 1, 1, 1, UIFont.Small)
         self:drawText(L("ADS mode", "Modo ADS"), 306, self.choiceY, 1, 1, 1, 1, UIFont.Small)
-        self:drawText(L("Sight / attachment", "Mira / accesorio"), 8, self.attachmentY + 3, 1, 1, 1, 1, UIFont.Small)
-        local attachment = self.attachments and self.attachments[self.attachmentIndex]
-        self:drawText(attachment and attachment.name or L("Select a weapon", "Selecciona un arma"), 158, self.attachmentY + 3,
-            0.8, 0.9, 1, 1, UIFont.Small)
+        self:drawText(L("PiP 2D backup DISABLED - anchor test", "Respaldo PiP 2D DESACTIVADO - prueba de anclaje"),
+            8, self.pageTitleY + 18, 1, 0.55, 0.3, 1, UIFont.Small)
+    elseif self.page == 2 and self.editGlobal then
+        self:drawText(L("Global +/-: values are deltas from 0", "Global +/-: los valores son ajustes relativos desde 0"),
+            8, self.pageTitleY + 18, 1, 0.8, 0.4, 1, UIFont.Small)
     end
-    local profile = PVADS.Controller.profile
-    if profile then
-        self:drawText((self.editGlobal and L("Preview: ", "Vista previa: ") or L("Current: ", "Actual: "))
-            .. visualChoiceLabel(RETICLES, RETICLE_ES, profile.reticle) .. " / " .. visualChoiceLabel(MODES, MODE_ES, profile.mode),
-            8, self.choiceInfoY, 0.65, 0.85, 1, 1, UIFont.Small)
-    end
-    if self.pipY then self:drawText(L("Picture-in-picture (scopes / red dots)", "Imagen en imagen (visores / puntos rojos)"), 8, self.pipY, 0.55, 0.85, 1, 1, UIFont.Small) end
     for _, row in ipairs(self.rows) do
-        self:drawText(fieldLabel(row.field), 8, row.y + 3, 1, 1, 1, 1, UIFont.Small)
-        local n = current(row.field, self.editGlobal)
-        if not row.slider.dragInside then
-            if n < row.slider.minValue or n > row.slider.maxValue then self:rangeFor(row, n)
-            else row.slider:setCurrentValue(n, true) end
-        end
-        if not row.entry:isFocused() then
-            local displayed = string.format("%.5f", n)
-            if row.entry:getText() ~= displayed then row.entry:setText(displayed) end
+        if row.page == self.page then
+            self:drawText(fieldLabel(row.field), 8, row.y + 3, 1, 1, 1, 1, UIFont.Small)
+            local n = current(row.field, self.editGlobal)
+            if not row.slider.dragInside then
+                if n < row.slider.minValue or n > row.slider.maxValue then self:rangeFor(row, n)
+                else row.slider:setCurrentValue(n, true) end
+            end
+            if not row.entry:isFocused() then
+                local displayed = string.format("%.5f", n)
+                if row.entry:getText() ~= displayed then row.entry:setText(displayed) end
+            end
         end
     end
     if self.markerScaleSlider then
