@@ -17,13 +17,13 @@ local LABEL_ES = {
     ["Lens size"] = "Tamaño del lente", ["ADS time"] = "Tiempo de ADS",
     ["PiP lens X"] = "Lente PiP X", ["PiP lens Y"] = "Lente PiP Y", ["PiP lens Z"] = "Lente PiP Z",
     ["PiP lens size"] = "Tamaño del lente PiP", ["PiP zoom"] = "Zoom PiP",
-    ["ScopeLens Speed"] = "Velocidad del lente", ["ScopeLens Movement"] = "Movimiento del lente",
+    ["Lens speed"] = "Velocidad del lente", ["Lens movement"] = "Movimiento del lente",
     ["PiP reticle X"] = "Retícula PiP X", ["PiP reticle Y"] = "Retícula PiP Y",
-    ["PiP depth"] = "Profundidad PiP", ["PiP anchor from muzzle X (m)"] = "Anclaje X (m)",
-    ["PiP anchor from muzzle Y (m)"] = "Anclaje Y (m)", ["PiP anchor from muzzle Z (m)"] = "Anclaje Z (m)",
+    ["PiP depth"] = "Profundidad PiP", ["Anchor X (m)"] = "Anclaje X (m)",
+    ["Anchor Y (m)"] = "Anclaje Y (m)", ["Anchor Z (m)"] = "Anclaje Z (m)",
     ["Glass crop size"] = "Tamaño del recorte",
-    ["Glass crop center X"] = "Centro recorte X",
-    ["Glass crop center Y"] = "Centro recorte Y",
+    ["Crop frame X"] = "Marco de recorte X",
+    ["Crop frame Y"] = "Marco de recorte Y",
     ["Reticle roll"] = "Rotación de la retícula",
     ["ADS FOV"] = "FOV al apuntar", ["Pitch"] = "Pitch", ["Yaw"] = "Yaw", ["Roll"] = "Roll",
 }
@@ -45,14 +45,14 @@ local FIELDS = {
     {"adsTime", "ADS time", 0.005},
     {"pipX", "PiP lens X", 0.005}, {"pipY", "PiP lens Y", 0.005},
     {"pipZ", "PiP lens Z", 0.002}, {"pipScale", "PiP lens size", 0.005, 1},
-    {"pipZoom", "PiP zoom", 0.01, 1}, {"pipSpeed", "ScopeLens Speed", 0.1, 14, 0.5, 120}, {"pipMove", "ScopeLens Movement", 1, 0, 0, 100}, {"pipRetX", "PiP reticle X", 0.005},
+    {"pipZoom", "PiP zoom", 0.01, 1}, {"pipSpeed", "Lens speed", 0.1, 14, 0.5, 120}, {"pipMove", "Lens movement", 1, 0, 0, 100}, {"pipRetX", "PiP reticle X", 0.005},
     {"pipRetY", "PiP reticle Y", 0.005}, {"pipDepth", "PiP depth", 0.002},
-    {"pipAnchorX", "PiP anchor from muzzle X (m)", 0.001},
-    {"pipAnchorY", "PiP anchor from muzzle Y (m)", 0.001},
-    {"pipAnchorZ", "PiP anchor from muzzle Z (m)", 0.001},
+    {"pipAnchorX", "Anchor X (m)", 0.001},
+    {"pipAnchorY", "Anchor Y (m)", 0.001},
+    {"pipAnchorZ", "Anchor Z (m)", 0.001},
     {"pipAnchorScale", "Glass crop size", 0.01, 1},
-    {"pipCropX", "Glass crop center X", 0.01, 0},
-    {"pipCropY", "Glass crop center Y", 0.01, 0},
+    {"pipCropX", "Crop frame X", 0.01, 0},
+    {"pipCropY", "Crop frame Y", 0.01, 0},
 }
 -- The range selector widens only spatial placement and physical sizing controls.
 -- Angles, FOV, ADS timing and zoom keep their original fine calibration span.
@@ -167,7 +167,12 @@ local function previewPartDefinitions()
             local part = instanceItem(fullType)
             if part then
                 local partType = tostring(part:getPartType() or "")
-                local entry = { id = fullType, name = displayName or fullType, partType = partType }
+                local itemName = displayName and tostring(displayName) or ""
+                if itemName == "" then
+                    itemName = tostring(fullType)
+                    itemName = string.match(itemName, "^[^%.]+%.(.+)$") or itemName
+                end
+                local entry = { id = fullType, name = itemName, partType = partType }
                 if partType == "Scope" then
                     PREVIEW_SCOPE_ITEMS[#PREVIEW_SCOPE_ITEMS + 1] = entry
                 elseif string.find(string.lower(partType), "mount", 1, true)
@@ -451,16 +456,21 @@ function PVADSGaelSliderWindow:createChildren()
     local resetButton = button(204, L("Reset", "Restablecer"), PVADSGaelSliderWindow.onReset)
     local copyButton = button(302, L("Copy", "Copiar"), PVADSGaelSliderWindow.onCopy)
     self.saveButton = button(400, L("Save", "Guardar"), PVADSGaelSliderWindow.onSave)
+    self.centerCropButton = button(498, L("Center in circle", "Centrar en círculo"), PVADSGaelSliderWindow.onCenterCrop, 100)
     local probeButton = button(8, L("Probe", "Analizar"), PVADSGaelSliderWindow.onProbe)
     local validateButton = button(106, L("Validate", "Validar"), PVADSGaelSliderWindow.onValidate)
     self.realTimeDotButton = button(204, realTimeDotLabel(), PVADSGaelSliderWindow.onRealTimeDot, 140)
     self.copyLensButton = button(350, L("Copy profiles", "Copiar perfiles"), PVADSGaelSliderWindow.onCopyLens, 96)
-    self.glassAnchorButton = button(350, L("Align crop", "Alinear recorte"), PVADSGaelSliderWindow.onUseGlassAnchor, 96)
+    self.glassAnchorButton = button(350, L("Anchor: OFF", "Anclaje: NO"), PVADSGaelSliderWindow.onUseGlassAnchor, 96)
     self.pipAltButton = button(450, "PiP ALT", PVADSGaelSliderWindow.onPipAlt, 76)
+    self.fixedWeaponButton = button(450, L("Fixed: OFF", "Fijo: NO"), PVADSGaelSliderWindow.onFixedWeapon, 76)
+    self.pip2DBackupButton = button(350, L("Reactivate PiP 2D Backup", "Reactivar respaldo PiP 2D"),
+        PVADSGaelSliderWindow.onPip2DBackup, 178)
     local closeButton = button(530, L("Close", "Cerrar"), PVADSGaelSliderWindow.close, 76)
     self.footerRows = {
-        { centerButton, self.holdButton, resetButton, copyButton, self.saveButton },
-        { probeButton, validateButton, self.realTimeDotButton, self.copyLensButton, self.pipAltButton, closeButton },
+        { centerButton, self.holdButton, resetButton, copyButton, self.saveButton, self.centerCropButton },
+        { probeButton, validateButton, self.realTimeDotButton, self.copyLensButton, self.pipAltButton, self.fixedWeaponButton, closeButton },
+        { self.pip2DBackupButton },
     }
     self:addMarkerScaleControl()
     self:layoutPage()
@@ -496,9 +506,14 @@ function PVADSGaelSliderWindow:layoutPage()
     if self.reticleCombo then self.reticleCombo:setVisible(self.page == 3) end
     if self.modeCombo then self.modeCombo:setVisible(self.page == 3) end
     if self.recoilPitchReverseButton then self.recoilPitchReverseButton:setVisible(self.page == 2) end
-    if self.copyLensButton then self.copyLensButton:setVisible(self.page ~= 4) end
+    if self.copyLensButton then self.copyLensButton:setVisible(self.page ~= 3 and self.page ~= 4) end
     if self.glassAnchorButton then self.glassAnchorButton:setVisible(self.page == 4 and not self.editGlobal) end
+    if self.centerCropButton then self.centerCropButton:setVisible(self.page == 4 and not self.editGlobal) end
+    if self.fixedWeaponButton then self.fixedWeaponButton:setVisible(self.page == 4 and not self.editGlobal) end
+    if self.pipAltButton then self.pipAltButton:setVisible(self.page ~= 4) end
+    if self.pip2DBackupButton then self.pip2DBackupButton:setVisible(self.page == 3 and not self.editGlobal) end
     self:updateGlassAnchorButton()
+    self:updateFixedWeaponButton()
     for page, tab in ipairs(self.pageTabs or {}) do
         local pageTab = L(PAGES[page].tabEN, PAGES[page].tab)
         tab:setTitle((page == self.page and "[" or "") .. pageTab .. (page == self.page and "]" or ""))
@@ -507,7 +522,7 @@ function PVADSGaelSliderWindow:layoutPage()
     for line, buttons in ipairs(self.footerRows or {}) do
         for _, b in ipairs(buttons) do b:setY(footerY + (line - 1) * (bh + 4)) end
     end
-    self.markerScaleY = footerY + 2 * (bh + 4) + 3
+    self.markerScaleY = footerY + (self.page == 3 and 3 or 2) * (bh + 4) + 3
     if self.markerScaleSlider then self.markerScaleSlider:setY(self.markerScaleY - 3) end
     self.infoY = self.markerScaleY + bh + 8
     self:setHeight(self.infoY + 42)
@@ -613,6 +628,7 @@ function PVADSGaelSliderWindow:onWeaponChosen()
     local weapon = self:equipSelected()
     self:syncAttachmentOptions(weapon)
     self:updateGlassAnchorButton()
+    self:updateFixedWeaponButton()
 end
 
 function PVADSGaelSliderWindow:stepWeapon(delta)
@@ -879,6 +895,36 @@ function PVADSGaelSliderWindow:onPipAlt()
     if self.saveButton then self.saveButton:setTitle(L("Save", "Guardar")) end
 end
 
+function PVADSGaelSliderWindow:onPip2DBackup()
+    if self.editGlobal then return end
+    local key = selected()
+    if not key then return end
+    PVADS.User[key] = PVADS.User[key] or {}
+    if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[key] = nil end
+    local enabled = (tonumber(PVADS.User[key].pip2DBackup) or 0) <= 0.5
+    PVADS.User[key].pip2DBackup = enabled and 1 or 0
+    if enabled then
+        -- Restore the old screen-space PiP path while the attached-optic
+        -- geometry anchor is being developed.
+        PVADS.User[key].pipFixed = 0
+        PVADS.User[key].pipAnchorClip = 0
+    end
+    PVADS.Controller.refresh(true)
+    self:updatePip2DBackupButton()
+    self.message = enabled
+        and L("PiP 2D backup enabled for this sight; press Save to keep it", "Respaldo PiP 2D activado para esta mira; pulsa Guardar para conservarlo")
+        or L("PiP 2D backup disabled for this sight; press Save to keep it", "Respaldo PiP 2D desactivado para esta mira; pulsa Guardar para conservarlo")
+end
+
+function PVADSGaelSliderWindow:updatePip2DBackupButton()
+    if not self.pip2DBackupButton then return end
+    local profile = PVADS.User[selected()]
+    local enabled = profile and (tonumber(profile.pip2DBackup) or 0) > 0.5
+    self.pip2DBackupButton:setTitle(enabled
+        and L("PiP 2D Backup: ON", "Respaldo PiP 2D: SÍ")
+        or L("Reactivate PiP 2D Backup", "Reactivar respaldo PiP 2D"))
+end
+
 function PVADSGaelSliderWindow:onSlide(amount, slider)
     local row = self.rows[slider.pvRow]
     if not row then return end
@@ -973,6 +1019,27 @@ function PVADSGaelSliderWindow:onCenter()
     end
 end
 
+-- Recover the projected glass to the generated optic-mount anchor, then
+-- center the crop frame. The existing Center button only recenters ranges.
+function PVADSGaelSliderWindow:onCenterCrop()
+    if self.editGlobal then return end
+    local key = selected()
+    if not key then return end
+    PVADS.User[key] = PVADS.User[key] or {}
+    if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[key] = nil end
+    -- Removing the local offsets lets ResolveProfile restore its generated
+    -- mount reference (or the profile's zero defaults) instead of preserving
+    -- an anchor that may have moved the glass off screen.
+    PVADS.User[key].pipAnchorX = nil
+    PVADS.User[key].pipAnchorY = nil
+    PVADS.User[key].pipAnchorZ = nil
+    PVADS.User[key].pipCropX = 0
+    PVADS.User[key].pipCropY = 0
+    PVADS.Controller.refresh(true)
+    self:onCenter()
+    self.message = L("Glass returned to the optic mount and crop frame centered; press Save to keep it", "Vidrio devuelto al montaje de la mira y marco centrado; pulsa Guardar para conservarlo")
+end
+
 function PVADSGaelSliderWindow:onHold()
     PVADS.Controller.forceADS = not PVADS.Controller.forceADS
     self.holdButton:setTitle(PVADS.Controller.forceADS and L("Release", "Soltar") or L("Hold ADS", "Mantener ADS"))
@@ -1001,8 +1068,49 @@ function PVADSGaelSliderWindow:updateGlassAnchorButton()
     local profile = key and PVADS.User and PVADS.User[key]
     local enabled = profile and (tonumber(profile.pipAnchorClip) or 0) > 0.5
     self.glassAnchorButton:setTitle(enabled
-        and L("Crop aligned", "Recorte alineado")
-        or L("Align crop", "Alinear recorte"))
+        and L("Anchor: ON", "Anclaje: SÍ")
+        or L("Anchor: OFF", "Anclaje: NO"))
+end
+
+function PVADSGaelSliderWindow:onFixedWeapon()
+    if self.editGlobal then return end
+    local key = selected()
+    if not key then
+        self.message = L("Select a weapon profile first", "Selecciona primero un perfil de arma")
+        return
+    end
+    PVADS.User[key] = PVADS.User[key] or {}
+    if PVADS.GaelDeletedProfileKeys then PVADS.GaelDeletedProfileKeys[key] = nil end
+    local enabled = (tonumber(PVADS.User[key].pipFixed) or 0) <= 0.5
+    -- For GaelGunStore's M4 + x2Scope, Fixed also needs to place and size the
+    -- projected glass at the model's Scope attachment. The old saved anchor
+    -- could leave the small PiP circle floating beside the physical lens.
+    if enabled and key == "Base.M4|Base.x2Scope" then
+        PVADS.User[key].pipAnchorClip = 1
+        PVADS.User[key].pipAnchorX = 0.0000
+        PVADS.User[key].pipAnchorY = -0.2828 -- Scope Y - muzzle Y
+        PVADS.User[key].pipAnchorZ = 0.0172 -- Scope Z - muzzle Z
+        PVADS.User[key].pipAnchorScale = 4.0000
+    end
+    PVADS.User[key].pipFixed = enabled and 1 or 0
+    PVADS.Controller.refresh(true)
+    self:updateFixedWeaponButton()
+    self.message = enabled
+        and (key == "Base.M4|Base.x2Scope"
+            and L("Glass snapped to the M4 scope mount; adjust if needed, then Save", "Vidrio colocado en el montaje de la mira M4; ajusta si hace falta y pulsa Guardar")
+            or L("Glass follows the weapon directly; press Save to keep it", "El vidrio sigue directamente al arma; pulsa Guardar para conservarlo"))
+        or L("Normal glass movement restored; press Save to keep it", "Se restauró el movimiento normal del vidrio; pulsa Guardar para conservarlo")
+    if self.saveButton then self.saveButton:setTitle(L("Save", "Guardar")) end
+end
+
+function PVADSGaelSliderWindow:updateFixedWeaponButton()
+    if not self.fixedWeaponButton then return end
+    local key = selected()
+    local profile = key and PVADS.User and PVADS.User[key]
+    local enabled = profile and (tonumber(profile.pipFixed) or 0) > 0.5
+    self.fixedWeaponButton:setTitle(enabled
+        and L("Fixed: ON", "Fijo: SÍ")
+        or L("Fixed: OFF", "Fijo: NO"))
 end
 
 function PVADSGaelSliderWindow:onReset()
@@ -1064,6 +1172,20 @@ local function copyProfileTable(source)
     return out
 end
 
+local function isCopyableSightProfile(opticId, saved)
+    if type(opticId) ~= "string" or opticId == "" or type(saved) ~= "table" then return false end
+    -- Iron sights can have a non-empty item ID, so checking only for an empty
+    -- "no sight" suffix is not sufficient. TritiumSights is kept as an optic.
+    if saved.mode == "iron" then return false end
+    local lowerId = string.lower(opticId)
+    if string.find(lowerId, "iron", 1, true) then return false end
+    local optic = PVADS.Optics and PVADS.Optics[opticId]
+    if not optic and PVADS.Generated and PVADS.Generated.optics then
+        optic = PVADS.Generated.optics[opticId]
+    end
+    return not optic or optic.kind ~= "iron"
+end
+
 function PVADSGaelSliderWindow:onCopyLens()
     local sourceKey = selected()
     local profile = PVADS.Controller and PVADS.Controller.profile
@@ -1084,12 +1206,13 @@ function PVADSGaelSliderWindow:onCopyLens()
         return
     end
 
-    -- Snapshot every saved optic profile for this weapon. An empty optic suffix is the no-sight profile.
+    -- Snapshot every saved optical profile for this weapon, including its PiP/glass fields.
+    -- Empty suffixes and items registered as iron sights are intentionally skipped.
     local sourceProfiles, sourcePrefix = {}, sourceWeaponId .. "|"
     for key, saved in pairs(PVADS.User or {}) do
         if type(key) == "string" and string.sub(key, 1, #sourcePrefix) == sourcePrefix then
             local opticId = string.sub(key, #sourcePrefix + 1)
-            if opticId ~= "" and type(saved) == "table" then
+            if isCopyableSightProfile(opticId, saved) then
                 sourceProfiles[opticId] = copyProfileTable(saved)
             end
         end
@@ -1097,11 +1220,17 @@ function PVADSGaelSliderWindow:onCopyLens()
 
     -- Include live edits for the equipped optic, even before Save is pressed.
     local liveOpticId = tostring(profile.opticId or "")
-    if liveOpticId ~= "" then
+    if isCopyableSightProfile(liveOpticId, profile) then
         local liveProfile = sourceProfiles[liveOpticId] or {}
         sourceProfiles[liveOpticId] = liveProfile
+        -- Carry the live optic-side overrides beyond the visible sliders too.
+        if type(profile.userWeapon) == "table" then
+            for name, value in pairs(profile.userWeapon) do
+                if type(value) == "number" then liveProfile[name] = value end
+            end
+        end
         for _, field in ipairs(FIELDS) do liveProfile[field[1]] = current(field, false) end
-        for _, name in ipairs({ "mode", "reticle", "pipAlt", "recoilPitchReverse" }) do
+        for _, name in ipairs({ "mode", "reticle", "pipAlt", "pip2DBackup", "recoilPitchReverse" }) do
             local value = profile[name]
             if value == nil and profile.userWeapon then value = profile.userWeapon[name] end
             if value ~= nil then liveProfile[name] = value end
@@ -1149,7 +1278,7 @@ function PVADSGaelSliderWindow:onCopyLens()
         string.format(L("Copy %d sight profiles from %s to %d weapons (%d profiles)?", "¿Copiar %d perfiles de mira de %s a %d armas (%d perfiles)?"),
             #opticIds, sourceWeaponId, weaponCount, #entries), true,
         self, PVADSGaelSliderWindow.onConfirmCopyLens)
-    modal.gaelInfo = L("All values from each compatible sight are copied; the no-sight profile is skipped.", "Se copian todos los valores de cada mira compatible; se omite el perfil sin mira.")
+    modal.gaelInfo = L("All alignment, PiP and glass values are copied for compatible optics; iron and no-sight profiles are skipped.", "Se copian alineación, PiP y vidrio de cada óptica compatible; se omiten las miras abiertas y los perfiles sin mira.")
     modal.prerender = function(dialog)
         ISModalDialog.prerender(dialog)
         dialog:drawText(dialog.gaelInfo, 18, 48, 0.9, 0.85, 0.55, 1, UIFont.Small)
@@ -1269,6 +1398,7 @@ function PVADSGaelSliderWindow:render()
         self:syncAttachmentOptions()
     end
     local choices = key and PVADS.User[key]
+    self:updatePip2DBackupButton()
     self:syncRecoilPitchReverse()
     if self.reticleCombo:getSelectedData() ~= (choices and choices.reticle or "auto")
         or self.modeCombo:getSelectedData() ~= (choices and choices.mode or "auto") then
@@ -1288,7 +1418,10 @@ function PVADSGaelSliderWindow:render()
     if self.page == 3 then
         self:drawText(L("Reticle", "Retícula"), 8, self.choiceY, 1, 1, 1, 1, UIFont.Small)
         self:drawText(L("ADS mode", "Modo ADS"), 306, self.choiceY, 1, 1, 1, 1, UIFont.Small)
-        self:drawText(L("PiP 2D backup DISABLED - anchor test", "Respaldo PiP 2D DESACTIVADO - prueba de anclaje"),
+        local backupOn = choices and (tonumber(choices.pip2DBackup) or 0) > 0.5
+        self:drawText(backupOn
+                and L("PiP 2D backup ON - screen-space fallback", "Respaldo PiP 2D ACTIVADO - proyección en pantalla")
+                or L("PiP 2D backup OFF - anchor test", "Respaldo PiP 2D DESACTIVADO - prueba de anclaje"),
             8, self.pageTitleY + 18, 1, 0.55, 0.3, 1, UIFont.Small)
     elseif self.page == 2 and self.editGlobal then
         self:drawText(L("Global +/-: values are deltas from 0", "Global +/-: los valores son ajustes relativos desde 0"),

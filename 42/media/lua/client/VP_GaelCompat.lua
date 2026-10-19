@@ -55,6 +55,35 @@ for _, row in ipairs(optics) do
         relief = longScopeRelief[name],
     })
 end
+
+-- Use the same model-space glass definition as the reference ADS bench. The
+-- Gael x2Scope is a separate mesh (Scope/Scopes|x2Scope); its rear lens is a
+-- 24-sided surface at Y=-0.0259, centred around X=0, Z=-0.0229. This lets the
+-- live drawn-model transform carry the PiP with the optic and clips the image
+-- to the actual eyepiece opening instead of a free screen-space circle.
+PVADS.RegisterOpticProfile("Base.x2Scope", {
+    glassVariants = {
+        {
+            mesh = "Scope/Scopes|x2Scope",
+            glass = { -0.007602, 0.007504, -0.030470, -0.015373, -0.0259 },
+            poly = {
+                -0.007602, -0.022922, -0.007345, -0.024912,
+                -0.006594, -0.026695, -0.005393, -0.028274,
+                -0.003827, -0.029509, -0.002003, -0.030265,
+                -0.000031, -0.030470,  0.001906, -0.030265,
+                 0.003730, -0.029509,  0.005295, -0.028274,
+                 0.006496, -0.026695,  0.007248, -0.024912,
+                 0.007504, -0.022922,  0.007248, -0.021000,
+                 0.006496, -0.019147,  0.005295, -0.017568,
+                 0.003730, -0.016401,  0.001906, -0.015647,
+                -0.000031, -0.015373, -0.002003, -0.015647,
+                -0.003827, -0.016401, -0.005393, -0.017568,
+                -0.006594, -0.019147, -0.007345, -0.021000,
+            },
+        },
+    },
+})
+
 -- These two mini red-dot meshes have an opaque-looking centre when the dot is
 -- only overlaid on top. PVADS's 1x scope mode cuts the sight model out of the
 -- PiP lens without magnifying the scene. Preserve the normal reflex eye relief
