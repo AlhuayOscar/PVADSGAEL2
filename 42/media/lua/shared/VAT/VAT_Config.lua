@@ -53,7 +53,7 @@ C.defaults = {
 
 --- Client preferences (overwritten by Mod Options when they load).
 C.client = {
-    previewMode = 2,              -- Simple: landing point only, while preparing
+    previewMode = 1,              -- Off by default; players can enable the preview in Mod Options
     previewWhileCharging = true,
     chargeIndicator = true,
     debugDraw = false,

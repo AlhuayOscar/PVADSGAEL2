@@ -183,22 +183,22 @@ local function buildGaelModOptions()
     if not (PZAPI and PZAPI.ModOptions) or optsGael then return end
     optsGael = PZAPI.ModOptions:create(GAEL_ID, "PVADSGAEL2 - Gael options")
 
-    optsGael:addTitle("Calibración y Control de Miras")
-    optsGael:addKeyBind("gaelCalibKey", "Abrir HUD Calibrador (Ñ por defecto)", Keyboard.KEY_SEMICOLON, "Abre el calibrador PVGADS; puedes cambiar la tecla aquí.")
-    optsGael:addTickBox("forceDeveloper", "Activar herramientas de desarrollo y calibración", true, "Deja disponible el calibrador durante el desarrollo del parche.")
+    optsGael:addTitle("Calibration and Sight Controls")
+    optsGael:addKeyBind("gaelCalibKey", "Open Calibration HUD (semicolon by default)", Keyboard.KEY_SEMICOLON, "Opens the PVADS calibrator; change the key here.")
+    optsGael:addTickBox("forceDeveloper", "Enable developer and calibration tools", true, "Keeps the calibrator available for development.")
 
-    optsGael:addTitle("Retroceso y Comportamiento Balístico")
-    optsGael:addTickBox("shotPitchRecoil", "Retroceso vertical por disparo", true, "Simula el retroceso del cañón y la elevación al disparar.")
-    optsGael:addTickBox("shotRecoilAffectsAim", "El retroceso afecta el punto de impacto", true, "Desplaza la línea de disparo junto con el movimiento del cañón.")
-    optsGael:addTickBox("boltPitchMotion", "Movimiento mecánico del cerrojo", true, "Simula la oscilación al ciclar el arma de cerrojo o corredera.")
-    optsGael:addTickBox("holdSway", "Balanceo al apuntar (Hold Sway)", true, "Balanceo natural afectado por fatiga, fuerza y resistencia.")
-    optsGael:addTickBox("sightMotion", "Movimiento de mira al caminar", true, "Desplaza la mira suavemente según el paso y el cansancio.")
-    optsGael:addTickBox("focusSearchBlur", "Desenfoque al buscar foco de mira", true, "Efecto de desenfoque de profundidad al apuntar con miras de hierro.")
+    optsGael:addTitle("Recoil and Ballistic Behavior")
+    optsGael:addTickBox("shotPitchRecoil", "Per-shot vertical recoil", true, "Simulates barrel recoil and muzzle rise when firing.")
+    optsGael:addTickBox("shotRecoilAffectsAim", "Recoil affects point of impact", true, "Moves the shot direction along with the barrel.")
+    optsGael:addTickBox("boltPitchMotion", "Bolt-action mechanism movement", true, "Simulates movement while cycling a bolt-action or pump-action weapon.")
+    optsGael:addTickBox("holdSway", "Aiming sway (Hold Sway)", true, "Natural sway affected by fatigue, strength, and endurance.")
+    optsGael:addTickBox("sightMotion", "Sight movement while walking", true, "Moves the sight smoothly based on walking pace and fatigue.")
+    optsGael:addTickBox("focusSearchBlur", "Focus-search blur", true, "Depth-of-field blur when aiming with iron sights.")
 
-    optsGael:addTitle("Diagnóstico de True Ballistics")
-    optsGael:addTickBox("vtbTracerEveryShot", "Mostrar trazadora en cada proyectil", true, "Activa la trazadora visual de True Ballistics para depurar el recorrido de cada disparo.")
-    optsGael:addTickBox("vtbDrawTrajectory", "Dibujar trayectoria del proyectil", true, "Activa el dibujo de trayectoria de True Ballistics mientras los proyectiles vuelan.")
-    optsGael:addTickBox("vtbDrawImpacts", "Dibujar impactos y colisiones", true, "Muestra marcadores de impacto de True Ballistics.")
+    optsGael:addTitle("True Ballistics Diagnostics")
+    optsGael:addTickBox("vtbTracerEveryShot", "Show a tracer on every projectile", false, "Shows True Ballistics tracers to help debug each shot path.")
+    optsGael:addTickBox("vtbDrawTrajectory", "Draw projectile trajectory", false, "Draws the True Ballistics path while projectiles are in flight.")
+    optsGael:addTickBox("vtbDrawImpacts", "Draw impacts and collisions", false, "Shows True Ballistics impact markers.")
 
     local function applyGaelOptions()
         if not optsGael then return end
@@ -229,9 +229,9 @@ applyTrueBallisticsOptions = function()
     local tracerFn = rawget(_G, "VTB_tracers")
     local debugFn = rawget(_G, "VTB_debug")
     if type(tracerFn) ~= "function" or type(debugFn) ~= "function" then return false end
-    local tracerOk = pcall(tracerFn, val(optsGael, "vtbTracerEveryShot", true) and 1 or 0)
-    local trajectoryOk = pcall(debugFn, "trajectories", val(optsGael, "vtbDrawTrajectory", true))
-    local impactOk = pcall(debugFn, "impacts", val(optsGael, "vtbDrawImpacts", true))
+    local tracerOk = pcall(tracerFn, val(optsGael, "vtbTracerEveryShot", false) and 1 or 0)
+    local trajectoryOk = pcall(debugFn, "trajectories", val(optsGael, "vtbDrawTrajectory", false))
+    local impactOk = pcall(debugFn, "impacts", val(optsGael, "vtbDrawImpacts", false))
     return tracerOk and trajectoryOk and impactOk
 end
 

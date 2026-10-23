@@ -26,7 +26,7 @@ PVADS.RegisterWeaponFamily("assault",     { adsTime = 0.26, relief = 0.11, fovMu
 PVADS.RegisterWeaponFamily("shotgun",     { adsTime = 0.27, relief = 0.12, fovMul = 0.95, swayMul = 1.10, recoilMul = 1.00, kickMul = 1.00, climb = 3.5, side = 1.0, recover = 0.60, gunKick = 8.0, gunBack = 0.045, hipCone = 2.0, ironHeight = 0.018, zero = 15 })
 PVADS.RegisterWeaponFamily("battlerifle", { adsTime = 0.31, relief = 0.11, fovMul = 0.93, swayMul = 1.15, recoilMul = 1.00, kickMul = 1.00, climb = 1.8, side = 0.8, recover = 0.40, gunKick = 5.0, gunBack = 0.030, hipCone = 3.5, ironHeight = 0.040, zero = 100 })
 PVADS.RegisterWeaponFamily("machinegun",  { adsTime = 0.40, relief = 0.12, fovMul = 0.94, swayMul = 1.45, recoilMul = 1.00, kickMul = 1.00, climb = 0.9, side = 0.7, recover = 0.30, gunKick = 3.5, gunBack = 0.025, hipCone = 4.0, ironHeight = 0.045, zero = 100 })
-PVADS.RegisterWeaponFamily("sniper",      { adsTime = 0.42, relief = 0.11, fovMul = 0.92, swayMul = 0.90, recoilMul = 1.00, kickMul = 1.00, climb = 3.0, side = 0.6, recover = 0.65, gunKick = 7.0, gunBack = 0.040, hipCone = 5.0, ironHeight = 0.030, zero = 100 })
+PVADS.RegisterWeaponFamily("sniper",      { adsTime = 0.42, relief = 0.11, fovMul = 0.70, swayMul = 0.90, recoilMul = 1.00, kickMul = 1.00, climb = 3.0, side = 0.6, recover = 0.65, gunKick = 7.0, gunBack = 0.040, hipCone = 5.0, ironHeight = 0.030, zero = 100 })
 
 -- Optic kinds
 PVADS.RegisterOpticKind("iron",   { mag = 1, reticle = "none" })

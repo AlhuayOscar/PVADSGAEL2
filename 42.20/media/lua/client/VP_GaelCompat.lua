@@ -55,6 +55,58 @@ for _, row in ipairs(optics) do
         relief = longScopeRelief[name],
     })
 end
+
+-- Use the actual Gael x2Scope rear glass mesh, matching the model transform so
+-- the PiP aperture is drawn at the optic and can be occluded by its housing.
+PVADS.RegisterOpticProfile("Base.x2Scope", {
+    glassVariants = {
+        {
+            mesh = "Scope/Scopes|x2Scope",
+            glass = { -0.007602, 0.007504, -0.030470, -0.015373, -0.0259 },
+            poly = {
+                -0.007602, -0.022922, -0.007345, -0.024912,
+                -0.006594, -0.026695, -0.005393, -0.028274,
+                -0.003827, -0.029509, -0.002003, -0.030265,
+                -0.000031, -0.030470,  0.001906, -0.030265,
+                 0.003730, -0.029509,  0.005295, -0.028274,
+                 0.006496, -0.026695,  0.007248, -0.024912,
+                 0.007504, -0.022922,  0.007248, -0.021000,
+                 0.006496, -0.019147,  0.005295, -0.017568,
+                 0.003730, -0.016401,  0.001906, -0.015647,
+                -0.000031, -0.015373, -0.002003, -0.015647,
+                -0.003827, -0.016401, -0.005393, -0.017568,
+                -0.006594, -0.019147, -0.007345, -0.021000,
+            },
+        },
+    },
+})
+
+-- Exact rear aperture from GaelGunStore's Scope/Scopes|PistolScope mesh.
+-- The 24 points are the outside rim at y=-0.065667 in the source FBX, so
+-- PiP projects into the actual lens instead of using a screen-space circle.
+PVADS.RegisterOpticProfile("Base.PistolScope", {
+    glassVariants = {
+        {
+            mesh = "Scope/Scopes|PistolScope",
+            glass = { -0.011710, 0.011411, -0.029946, -0.006816, -0.065667 },
+            poly = {
+                -0.011710, -0.018364, -0.011320, -0.021374,
+                -0.010160, -0.024172, -0.008322, -0.026546,
+                -0.005928, -0.028387, -0.003140, -0.029556,
+                -0.000149, -0.029946,  0.002844, -0.029556,
+                 0.005633, -0.028387,  0.008024, -0.026546,
+                 0.009861, -0.024172,  0.011022, -0.021374,
+                 0.011411, -0.018364,  0.011022, -0.015387,
+                 0.009861, -0.012590,  0.008024, -0.010216,
+                 0.005633, -0.008374,  0.002844, -0.007206,
+                -0.000149, -0.006816, -0.003140, -0.007206,
+                -0.005928, -0.008374, -0.008322, -0.010216,
+                -0.010160, -0.012590, -0.011320, -0.015387,
+            },
+        },
+    },
+})
+
 -- These two mini red-dot meshes have an opaque-looking centre when the dot is
 -- only overlaid on top. PVADS's 1x scope mode cuts the sight model out of the
 -- PiP lens without magnifying the scene. Preserve the normal reflex eye relief

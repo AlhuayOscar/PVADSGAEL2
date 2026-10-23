@@ -85,5 +85,16 @@
   "Sandbox_VTB_FurnitureCollision": "Furniture collision",
   "Sandbox_VTB_FurnitureCollision_tooltip": "Solid furniture and counters stop rounds (tall solid objects up to 1.9 m, counters/tables up to 0.9 m).",
   "Sandbox_VTB_ServerValidation": "Server hit validation",
-  "Sandbox_VTB_ServerValidation_tooltip": "Multiplayer: the server rejects firearm hits that had no line of fire or impossible damage. Needs the True Ballistics jar on the server."
+  "Sandbox_VTB_ServerValidation_tooltip": "Multiplayer: the server rejects firearm hits that had no line of fire or impossible damage. Needs the True Ballistics jar on the server.",
+  "Sandbox_RebuildingKnoxDemo": "Rebuilding Knox",
+  "Sandbox_RebuildingKnoxDemo_HudInactiveOpacity": "HUD: opacity while busy (%%)",
+  "Sandbox_RebuildingKnoxDemo_HudInactiveOpacity_tooltip": "Opacity while moving or performing an action, unless inventory or loot is expanded. Range 10 to 100; default 30 %% visible.",
+  "Sandbox_RebuildingKnoxDemo_HudActiveOpacity": "HUD: opacity while idle or using inventory (%%)",
+  "Sandbox_RebuildingKnoxDemo_HudActiveOpacity_tooltip": "Opacity while standing still without an action, or while an inventory/loot window is visible and expanded. Default 100 %%.",
+  "Sandbox_RebuildingKnoxDemo_HudLowResourceThreshold": "HUD: resource threshold for grayscale",
+  "Sandbox_RebuildingKnoxDemo_HudLowResourceThreshold_tooltip": "At or below this quantity the icon is completely gray. Default 0.",
+  "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep": "HUD: resource units per 5 %% color step",
+  "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep_tooltip": "Each full increment above the threshold restores 5 %% saturation. Default 5: 0 gray, 5 at 5 %%, 10 at 10 %%, 100 full color.",
+  "Sandbox_RebuildingKnoxDemo_HudReactivateColor": "HUD: restore resource icon colors",
+  "Sandbox_RebuildingKnoxDemo_HudReactivateColor_tooltip": "Enabled: restore saturation in 5 %% steps according to resource quantities. Disabled: icons stay gray; quantities still update. Unknown values such as morale stay gray."
 }

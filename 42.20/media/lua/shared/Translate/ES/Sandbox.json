@@ -114,5 +114,16 @@
   "Sandbox_ViewpointThrowables_FireDamageMultiplier": "Incendiary fire damage",
   "Sandbox_ViewpointThrowables_FireDamageMultiplier_tooltip": "How fast molotov and incendiary fire burns zombies to death (1 = a few seconds in the flames). 0 leaves it to the game's own fire, which rarely kills.",
   "Sandbox_ViewpointThrowables_LauncherSpeed": "Grenade launcher muzzle speed (m/s)",
-  "Sandbox_ViewpointThrowables_LauncherSpeed_tooltip": "How fast 40 mm grenades leave a launcher (M79, M203). 32 gives a visible lob that reaches about 100 m at the highest arc. A real M79 is about 76, which is very fast and very far for Project Zomboid."
+  "Sandbox_ViewpointThrowables_LauncherSpeed_tooltip": "How fast 40 mm grenades leave a launcher (M79, M203). 32 gives a visible lob that reaches about 100 m at the highest arc. A real M79 is about 76, which is very fast and very far for Project Zomboid.",
+  "Sandbox_RebuildingKnoxDemo": "Rebuilding Knox",
+  "Sandbox_RebuildingKnoxDemo_HudInactiveOpacity": "Barra: visibilidad mientras estas ocupado (%%)",
+  "Sandbox_RebuildingKnoxDemo_HudInactiveOpacity_tooltip": "Visibilidad al moverte o realizar acciones, salvo inventario o botin desplegado. 10 a 100; predeterminado: 30 %% visible.",
+  "Sandbox_RebuildingKnoxDemo_HudActiveOpacity": "Barra: visibilidad al estar quieto o abrir inventario (%%)",
+  "Sandbox_RebuildingKnoxDemo_HudActiveOpacity_tooltip": "Visibilidad al estar quieto y sin acciones, o con inventario/botin visible y desplegado. Predeterminado: 100 %%.",
+  "Sandbox_RebuildingKnoxDemo_HudLowResourceThreshold": "Barra: cantidad minima para salir del gris",
+  "Sandbox_RebuildingKnoxDemo_HudLowResourceThreshold_tooltip": "Hasta esta cantidad el icono permanece completamente gris. Predeterminado: 0.",
+  "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep": "Barra: unidades por cada 5 %% de color",
+  "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep_tooltip": "Por cada incremento completo de esta cantidad por encima del minimo, el icono recupera 5 %% de saturacion. Con 5: 0 gris, 5 al 5 %%, 10 al 10 %%, 100 a color completo.",
+  "Sandbox_RebuildingKnoxDemo_HudReactivateColor": "Barra: reactivar color segun recursos",
+  "Sandbox_RebuildingKnoxDemo_HudReactivateColor_tooltip": "Activado: recupera color en pasos de 5 %% segun cantidades. Desactivado: los iconos permanecen grises; los valores siguen actualizandose. Los datos sin medir, como moral, permanecen grises."
 }

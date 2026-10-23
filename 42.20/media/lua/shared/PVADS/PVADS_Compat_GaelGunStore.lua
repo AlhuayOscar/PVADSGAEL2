@@ -119,6 +119,24 @@ function G.register()
              "RDS", "Romeo3", "RX01", "SigSauerRomeo3", "SLDG", "TruBrite", "VenomRDS", "VortexRedDot", "ZaMiniRDS",
              "PKA", "EKP_kobra" })
     reflex({ "Eotech", "Eotech_XPS3" }, "holo")
+
+    -- SLDG's rear glass is a small round window in the actual FBX mesh.
+    -- glassY is stored as a magnitude because glassWindow tests -Y first;
+    -- the rear lens plane itself is at Y=-0.055 in the mesh.
+    -- The measured bounds and perimeter let PiP follow the moving optic.
+    PVADS.RegisterOpticProfile("Base.SLDG", {
+        glass = { -0.0085, 0.0085, -0.0345, -0.0175, 0.0550, true },
+        glassPoly = {
+            0.00846,-0.02601, 0.00818,-0.02386, 0.00735,-0.02185,
+            0.00602,-0.02013, 0.00430,-0.01880, 0.00229,-0.01797,
+            0.00014,-0.01769, -0.00201,-0.01797, -0.00402,-0.01880,
+            -0.00574,-0.02013, -0.00707,-0.02185, -0.00790,-0.02386,
+            -0.00818,-0.02601, -0.00790,-0.02816, -0.00707,-0.03017,
+            -0.00574,-0.03189, -0.00402,-0.03322, -0.00201,-0.03405,
+            0.00014,-0.03433, 0.00229,-0.03405, 0.00430,-0.03322,
+            0.00602,-0.03189, 0.00735,-0.03017, 0.00818,-0.02816
+        },
+    })
     -- magnified, by the pack's scope mark
     scope("EKP_kobra_2x", 2, "dot", 50)                -- 2x by name; no mark
     scope("Elcan_M145", 3, "crossdot")                 -- x3
@@ -145,7 +163,7 @@ function G.register()
     scope("Accupoint", 8, "duplex")                    -- long-range class
     scope("IRNV", 8, "duplex")                         -- long-range class
     scope("ATN_Thor", 4, "crossdot")                   -- ACOG class
-    PVADS.log("GaelGunStore: weapon and optic profiles registered")
+    PVADS.log("GaelGunStore: weapon and optic profiles registered; SLDG glass aperture uses 24-point mesh profile")
 end
 
 -- at load when GaelGunStore's Lua came first, otherwise once everything is loaded (before any profile is resolved)

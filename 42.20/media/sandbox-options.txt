@@ -526,3 +526,53 @@ option ViewpointThrowables.LauncherSpeed
     page = ViewpointThrowables,
     translation = ViewpointThrowables_LauncherSpeed,
 }
+
+// Rebuilding Knox resource HUD appearance
+option RebuildingKnoxDemo.HudInactiveOpacity
+{
+    type = integer,
+    min = 10,
+    max = 100,
+    default = 30,
+    page = RebuildingKnoxDemo,
+    translation = RebuildingKnoxDemo_HudInactiveOpacity,
+}
+
+option RebuildingKnoxDemo.HudActiveOpacity
+{
+    type = integer,
+    min = 10,
+    max = 100,
+    default = 100,
+    page = RebuildingKnoxDemo,
+    translation = RebuildingKnoxDemo_HudActiveOpacity,
+}
+
+option RebuildingKnoxDemo.HudLowResourceThreshold
+{
+    type = integer,
+    min = 0,
+    max = 100000,
+    default = 0,
+    page = RebuildingKnoxDemo,
+    translation = RebuildingKnoxDemo_HudLowResourceThreshold,
+}
+
+option RebuildingKnoxDemo.HudUnitsPerColorStep
+{
+    type = integer,
+    min = 1,
+    max = 10000,
+    default = 5,
+    page = RebuildingKnoxDemo,
+    translation = RebuildingKnoxDemo_HudUnitsPerColorStep,
+}
+
+option RebuildingKnoxDemo.HudReactivateColor
+{
+    type = boolean,
+    default = true,
+    page = RebuildingKnoxDemo,
+    translation = RebuildingKnoxDemo_HudReactivateColor,
+}
+

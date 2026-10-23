@@ -329,7 +329,7 @@ function PVADS.ResolveProfile(weapon)
         p.windowScale = od.windowScale or 1
         -- 1.7.5: picture-in-picture calibration can belong to the optic itself (every gun it sits on);
         -- a weapon + optic override below still wins
-        for _, k in ipairs({ "pipX", "pipY", "pipZ", "pipScale", "pipZoom", "pipRetX", "pipRetY", "pipDepth", "pipCorner", "pipAspect" }) do
+        for _, k in ipairs({ "pipX", "pipY", "pipZ", "pipScale", "pipZoom", "pipRetX", "pipRetY", "pipDepth", "pipCorner", "pipAspect", "pipSpeed", "pipMove" }) do
             if od[k] ~= nil then p[k] = od[k] end
         end
         p.color = od.color
@@ -370,6 +370,11 @@ function PVADS.ResolveProfile(weapon)
         copyInto(p, u)
         if u.adjX ~= nil or u.adjY ~= nil or u.adjZ ~= nil or u.adjPitch ~= nil or u.adjYaw ~= nil then p.ironLocked = true end
         if u.pipScale ~= nil or u.pipX ~= nil or u.pipY ~= nil or u.pipCorner ~= nil or u.pipAspect ~= nil then p.pipLocked = true end
+    end
+    -- Sniper-class weapons (including bolt-action and historical rifles) always use a tighter ADS view.
+    -- Apply this after optic, adapter, and player calibration values so every sniper profile is exactly 0.70.
+    if famName == "sniper" then
+        p.fovMul = 0.70
     end
     return p
 end

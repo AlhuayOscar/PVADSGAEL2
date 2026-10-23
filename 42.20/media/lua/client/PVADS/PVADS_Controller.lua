@@ -69,6 +69,17 @@ local function blockingAction(pl)
     return nil
 end
 
+-- Blocking timed actions own the upper-body pose until they finish.
+-- Respect the same allowlist as blocked(): cycling a bolt/pump is deliberately
+-- allowed to keep ADS up so the existing BoltPitchMotion runs over the sights.
+-- Magazine changes/reloads still block immediately, including packs that keep
+-- isAiming() true during their reload animation.
+local function timedActionActive(pl)
+    local q = ISTimedActionQueue.queues and ISTimedActionQueue.queues[pl]
+    local action = q and q.queue and q.queue[1]
+    return action ~= nil and not C.ALLOWED_ACTIONS[action.Type or ""]
+end
+
 --- Reasons the sights must come down. Returns (reason, hard): hard reasons drop ADS at once,
 --- soft ones only after they persist (so a one-frame state flicker while firing never drops ADS).
 --- Firing itself is never a reason: shooting is what ADS is for.
@@ -154,7 +165,8 @@ local function onPlayerUpdate(pl)
         C.aimLostAt = C.aimLostAt or now
         aiming = (now - C.aimLostAt) < SOFT_GRACE * 1000
     end
-    if w and C.profile and PVADS_canAds() and aiming and not stop then
+    local actionActive = timedActionActive(pl)
+    if w and C.profile and PVADS_canAds() and aiming and not stop and not actionActive then
         if s.mode == 1 then want = true
         elseif s.mode == 2 then
             -- the bound key re-read every second, not every tick

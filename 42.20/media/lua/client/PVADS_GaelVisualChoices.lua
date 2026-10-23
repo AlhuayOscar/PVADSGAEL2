@@ -27,8 +27,9 @@ if not PVADS.gaelVisualChoicesInstalled then
         relief = true, fovMul = true, opticHeight = true,
         lensScale = true, adsTime = true,
         pipX = true, pipY = true, pipZ = true,
-        pipScale = true, pipZoom = true,
+        pipScale = true, pipZoom = true, pipSpeed = true, pipMove = true,
         pipRetX = true, pipRetY = true, pipDepth = true,
+        pipAnchorX = true, pipAnchorY = true, pipAnchorZ = true,
     }
     local unitDefaults = { lensScale = true, pipScale = true, pipZoom = true }
     local okp7DefaultProfile = {
@@ -108,7 +109,7 @@ if not PVADS.gaelVisualChoicesInstalled then
     local lastResolvedProfileDiagnostic = {}
     local function diagnosticValues(values)
         if not values then return "none" end
-        local fields = { "adjX", "adjY", "adjZ", "adjPitch", "adjYaw", "adjRoll", "fovMul", "relief", "lensScale", "pipScale", "pipZoom", "adsTime", "mode", "reticle", "pipAlt", "recoilPitchReverse" }
+        local fields = { "adjX", "adjY", "adjZ", "adjPitch", "adjYaw", "adjRoll", "fovMul", "relief", "lensScale", "pipScale", "pipZoom", "pipDepth", "pipAnchorX", "pipAnchorY", "pipAnchorZ", "pipAnchorClip", "pipAnchorScale", "pipCropX", "pipCropY", "pipSpeed", "pipMove", "pipFixed", "pip2DBackup", "adsTime", "mode", "reticle", "pipAlt", "recoilPitchReverse" }
         local out = {}
         for _, name in ipairs(fields) do
             local value = values[name]
@@ -118,6 +119,49 @@ if not PVADS.gaelVisualChoicesInstalled then
     end
     PVADS.ResolveProfile = function(weapon)
         local profile = originalResolveProfile(weapon)
+        -- The Java anchored-glass fallback requires a weapon-space reference
+        -- point (genMuzzle*) and an explicit enable flag. The stock resolver
+        -- only forwarded genMuzzleY, so the Glass tab's Anchor toggle had no
+        -- effect for generated profiles. Forward the full point when present.
+        local generated = PVADS.Generated and PVADS.Generated.weapons
+            and PVADS.Generated.weapons[profile.weaponId]
+        if generated then
+            local muzzle = generated.muzzle or generated.muzzleEstimated
+            if muzzle and (tonumber(profile.pipAnchorClip) or 0) > 0.5 then
+                profile.genMuzzleX = tonumber(muzzle[1]) or 0
+                profile.genMuzzleY = tonumber(muzzle[2]) or profile.genMuzzleY or 0
+                profile.genMuzzleZ = tonumber(muzzle[3]) or 0
+                profile.genMuzzleAnchor = true
+            end
+        end
+
+        -- GaelGunStore's Base.M4 uses its own AR/AssaultRifles|M4 mesh. Its
+        -- model script defines real muzzle and Scope attachments; use those
+        -- points instead of borrowing/scaling the unrelated vanilla M4A1
+        -- profile. Saved per-optic anchor offsets still apply on top and are
+        -- never overwritten.
+        if profile.weaponId == "Base.M4" and profile.opticId == "Base.x2Scope" then
+            -- Enable this known-good fallback for the screenshot's exact
+            -- weapon/optic pair unless the player explicitly saved it OFF.
+            if profile.pipAnchorClip == nil then profile.pipAnchorClip = 1 end
+            local muzzle = { 0.0000, 0.3543, 0.0314 }
+            local mount = { 0.0000, 0.0715, 0.0486 }
+            if (tonumber(profile.pipAnchorClip) or 0) > 0.5 then
+                profile.genMuzzleX = muzzle[1]
+                profile.genMuzzleY = muzzle[2]
+                profile.genMuzzleZ = muzzle[3]
+                profile.genMuzzleAnchor = true
+                if profile.pipAnchorX == nil then
+                    profile.pipAnchorX = mount[1] - muzzle[1]
+                end
+                if profile.pipAnchorY == nil then
+                    profile.pipAnchorY = mount[2] - muzzle[2]
+                end
+                if profile.pipAnchorZ == nil then
+                    profile.pipAnchorZ = mount[3] - muzzle[3]
+                end
+            end
+        end
         -- Default OKP-7 presentation for any weapon, including combinations
         -- without a user profile. Personal values remain intact once saved.
         if profile.opticId == "Base.OKP7" then
@@ -199,7 +243,7 @@ if not PVADS.gaelVisualChoicesInstalled then
         -- stable for both render paths.
         local opticUser = profile.userWeapon
         if opticUser then
-            for _, name in ipairs({ "pipScale", "pipZoom", "pipX", "pipY", "pipZ", "pipRetX", "pipRetY", "pipDepth" }) do
+            for _, name in ipairs({ "pipScale", "pipZoom", "pipX", "pipY", "pipZ", "pipRetX", "pipRetY", "pipDepth", "pipAnchorX", "pipAnchorY", "pipAnchorZ", "pipAnchorClip", "pipAnchorScale", "pipCropX", "pipCropY", "pipSpeed", "pipMove", "pipFixed" }) do
                 if opticUser[name] ~= nil then profile[name] = tonumber(opticUser[name]) or profile[name] end
             end
             if opticUser.lensScale ~= nil and (profile.mode == "scope"
@@ -216,6 +260,32 @@ if not PVADS.gaelVisualChoicesInstalled then
         end
         local key = tostring(profile.weaponId) .. "|" .. tostring(profile.opticId or "")
         local user = PVADS.User and PVADS.User[key]
+        -- This pair has a measured PistolScope aperture (registered in
+        -- VP_GaelCompat). Its old calibration deliberately kept the 2D
+        -- fallback on while the mesh was unknown; that fallback necessarily
+        -- disables the fixed/depth-tested path. Migrate it to physical glass.
+        if key == "Base.CZ75|Base.PistolScope" then
+            if user then
+                user.pip2DBackup = 0
+                user.pipFixed = 1
+                user.pipAnchorClip = 0
+            end
+            profile.pip2DBackup = 0
+            profile.pipFixed = 1
+            profile.pipAnchorClip = 0
+        end
+        if user and user.pipFixed ~= nil then profile.pipFixed = tonumber(user.pipFixed) or 0 end
+        local backup = user and tonumber(user.pip2DBackup)
+        if backup == nil then backup = profile.opticId and profile.opticId ~= "" and 1 or 0 end
+        profile.pip2DBackup = backup
+        if backup > 0.5 then
+            profile.pipFixed = 0
+            profile.pipAnchorClip = 0
+            if profile.userWeapon then
+                profile.userWeapon.pipFixed = 0
+                profile.userWeapon.pipAnchorClip = 0
+            end
+        end
         local diagnostic = string.format("[PVADSGAEL2][profiles][resolve] key=%s user={%s} opticFields={%s} final={%s}",
             key, diagnosticValues(user), diagnosticValues(profile.userWeapon), diagnosticValues(profile))
         if lastResolvedProfileDiagnostic[key] ~= diagnostic then
