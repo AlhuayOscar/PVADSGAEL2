@@ -1,0 +1,2 @@
+
+ItemBodyLocation.register("pvg:slingfront")

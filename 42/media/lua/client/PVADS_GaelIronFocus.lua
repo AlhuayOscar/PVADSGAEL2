@@ -1282,6 +1282,7 @@ function PVADS_GaelIronFocus_prepareShotRecoil(player, weapon, shotAt)
                     + (recoilDurationMs - recoilHoldMs) / recoverySpeed
             end
             local aimingRecovery = PVADS_GaelIronFocus_aimingRecoveryMultiplier(player)
+            aimingRecovery = aimingRecovery * PVADS_GaelGrip.recoveryMultiplier(weapon)
             recoilDurationMs = recoilHoldMs
                 + (recoilDurationMs - recoilHoldMs) / aimingRecovery
             local bonus = weaponWeight > HEAVY_RECOIL_WEIGHT and HEAVY_RECOIL_BONUS

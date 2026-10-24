@@ -10,6 +10,13 @@ public class PatchRecoilPhysics {
             while(entries.hasMoreElements()){
                 ZipEntry e=entries.nextElement();byte[] bytes=zip.getInputStream(e).readAllBytes();
                 if(e.getName().equals("pvads/RecoilPhysics.class"))throw new IllegalStateException("Already patched");
+                if(e.getName().equals("pvads/Api.class")){
+                    ClassNode api=new ClassNode();new ClassReader(bytes).accept(api,0);
+                    MethodNode setter=api.methods.stream().filter(m->m.name.equals("setProfile")).findFirst().orElseThrow();
+                    InsnList hook=new InsnList();hook.add(new VarInsnNode(Opcodes.ALOAD,0));
+                    hook.add(new MethodInsnNode(Opcodes.INVOKESTATIC,"pvads/RecoilPhysics","profile","(Lse/krka/kahlua/vm/KahluaTable;)V",false));
+                    setter.instructions.insert(hook);ClassWriter writer=new ClassWriter(ClassWriter.COMPUTE_MAXS);api.accept(writer);bytes=writer.toByteArray();
+                }
                 if(e.getName().equals("pvads/ADS.class")){
                     ClassNode c=new ClassNode();new ClassReader(bytes).accept(c,0);int edits=0;
                     for(MethodNode m:c.methods){

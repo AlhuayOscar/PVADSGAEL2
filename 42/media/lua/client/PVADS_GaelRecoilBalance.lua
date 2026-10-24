@@ -2,6 +2,7 @@
 -- Degrees and metres are separate effects, weighted against their own baseline.
 require "PVADS_GaelWeaponCatalog"
 require "PVADS_GaelAlignment"
+require "PVADS_GaelGrip"
 PVADS_GaelRecoilBalance = PVADS_GaelRecoilBalance or {}
 local balance = PVADS_GaelRecoilBalance
 balance.angularWeight, balance.offsetWeight = 0.70, 0.30
@@ -40,6 +41,13 @@ function balance.profile(profile)
     for key, value in pairs(profile) do view[key] = value end
     view.gunKick = (tonumber(profile.gunKick) or 3) * balance.angularWeight
     view.gunBack = (tonumber(profile.gunBack) or 0.02) * balance.offsetWeight
+    local player = getSpecificPlayer(0)
+    local weapon = player and player:getPrimaryHandItem()
+    if weapon and weapon:getFullType() == profile.weaponId then
+        view.attachmentRecoilMul, view.attachmentRecoveryMul = PVADS_GaelGrip.effects(weapon)
+    else
+        view.attachmentRecoilMul, view.attachmentRecoveryMul = 1, 1
+    end
     view._gaelRecoilBalanced = true
     return view
 end

@@ -1,0 +1,50 @@
+[
+  {
+    "file": "anims_X/PVGTactical/Bob_ClassicStockGrip.fbx",
+    "sha256": "d6a7aebaf4a2cba677372e59a2fce6811f3f5056a338a2ae8c5d77338399d73c"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_GunResting.fbx",
+    "sha256": "2f330fa6dbaae6b4853f8e0c0f90ea012eb880c7282a9ac50c563af86cbfc321"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_PistolLowLeft.fbx",
+    "sha256": "c423d1e5a941ed28c3c1090a8273eac5cd1c4078be925499748f62430d09751e"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_PistolLowRight.fbx",
+    "sha256": "d1da50efa415fa34b5aaceb87d8fd1eaa5bbdbc48d0b697aeffe1e8ac76bf685"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TAC.fbx",
+    "sha256": "3b18b6c78f37ea49abe0a158cd83d89395be8c350b99a2e4163ee71c248af0d3"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TACHighReady.fbx",
+    "sha256": "71ce9b41d5a9798c73877b7e4eeb76cd5662d2c033639b306c9c520ecfec2280"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TACLowReady.fbx",
+    "sha256": "054eeec2648517e07452f83dc3fdc0237aa5569c6cf91f7d37f096d73e5920f3"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TACPistolHIghLeft.fbx",
+    "sha256": "81f9675afb03bafe177ad6cc1839690dc0f3200e12874e0fc0884cf6ae205ffc"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TACPistolHIghRight.fbx",
+    "sha256": "b87b8c93f281ab5a2cd299488efcad4587504c74f5f2146ba6e6dd95da01c936"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TACPL.fbx",
+    "sha256": "e2de6ec953b8b61ecea977c75e8f6e1795620c4665846f6c6c6148f8d2df79ce"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_TACPR.fbx",
+    "sha256": "05401efd4ebbbd28138461ce9064fa2c230e9647b9d4ebb7ce415ef14e89cf59"
+  },
+  {
+    "file": "anims_X/PVGTactical/Bob_Vanilla.fbx",
+    "sha256": "672fd7f92c36a5af563da21875250be8f9024578adce9f6fb46b84593ea21e42"
+  }
+]

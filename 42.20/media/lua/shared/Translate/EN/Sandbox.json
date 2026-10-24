@@ -96,5 +96,7 @@
   "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep": "HUD: resource units per 5 %% color step",
   "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep_tooltip": "Each full increment above the threshold restores 5 %% saturation. Default 5: 0 gray, 5 at 5 %%, 10 at 10 %%, 100 full color.",
   "Sandbox_RebuildingKnoxDemo_HudReactivateColor": "HUD: restore resource icon colors",
-  "Sandbox_RebuildingKnoxDemo_HudReactivateColor_tooltip": "Enabled: restore saturation in 5 %% steps according to resource quantities. Disabled: icons stay gray; quantities still update. Unknown values such as morale stay gray."
+  "Sandbox_RebuildingKnoxDemo_HudReactivateColor_tooltip": "Enabled: restore saturation in 5 %% steps according to resource quantities. Disabled: icons stay gray; quantities still update. Unknown values such as morale stay gray.",
+  "Sandbox_PVADSGAEL2_IntegratedSling": "Integrated PVADSGael sling (experimental)",
+  "Sandbox_PVADSGAEL2_IntegratedSling_tooltip": "Enables the original PVADSGael sling slot and crafting in multiplayer. Requires a restart and the matching Java build."
 }
