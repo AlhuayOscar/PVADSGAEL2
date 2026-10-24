@@ -1,0 +1,310 @@
+// PVADSGAEL-owned geometry; original item IDs and texture paths preserved.
+module Base
+{
+    model 1P78
+    {
+                mesh = PVADSGael/GaelScopes|1P78,
+                texture = GunTexture/1P78_tex,
+                cullFace = None,
+        }
+    model 1PN93_4
+    {
+                mesh = PVADSGael/GaelScopes|1PN93_4,
+                texture = GunTexture/1PN93_4_tex,
+                cullFace = None,
+        }
+    model EKP_kobra
+    {
+                mesh = PVADSGael/GaelScopes|EKP_kobra,
+                texture = GunTexture/EKP_kobra_tex,
+                cullFace = None,
+        }
+    model EKP_kobra_2x
+    {
+                mesh = PVADSGael/GaelScopes|EKP_kobra_2x,
+                texture = GunTexture/EKP_kobra_2x_tex,
+                cullFace = None,
+        }
+    model POSP
+    {
+                mesh = PVADSGael/GaelScopes|POSP,
+                texture = GunTexture/POSP_tex,
+                cullFace = None,
+        }
+    model POSP4x24
+    {
+                mesh = PVADSGael/GaelScopes|POSP4x24,
+                texture = GunTexture/POSP4x24_tex,
+                cullFace = None,
+        }
+    model Zeiss4x25
+    {
+                mesh = PVADSGael/GaelScopes|Zeiss4x25,
+                texture = GunTexture/Zeiss4x25_tex,
+                cullFace = None,
+        }
+    model Accupoint
+    {
+                mesh = PVADSGael/GaelScopes|Accupoint,
+                texture = GunTexture/Accupoint_tex,
+                cullFace = None,
+        }
+    model Acog_ecos
+    {
+                mesh = PVADSGael/GaelScopes|Acog_ecos,
+                texture = GunTexture/Acog_ecos_tex,
+                cullFace = None,
+        }
+    model Acog_TA648
+    {
+                mesh = PVADSGael/GaelScopes|Acog_TA648,
+                texture = GunTexture/Acog_TA648_tex,
+                cullFace = None,
+        }
+    model ACOGx4
+    {
+                mesh = PVADSGael/GaelScopes|ACOGx4,
+                texture = GunTexture/ACOGx4_tex,
+                cullFace = None,
+        }
+    model ATN_Thor
+    {
+                mesh = PVADSGael/GaelScopes|ATN_Thor,
+                texture = GunTexture/ATN_Thor_tex,
+                cullFace = None,
+        }
+    model BallisticScope
+    {
+                mesh = PVADSGael/GaelScopes|BallisticScope,
+                texture = GunTexture/BallisticScope_tex,
+                cullFace = None,
+        }
+    model Bravo4
+    {
+                mesh = PVADSGael/GaelScopes|Bravo4,
+                texture = GunTexture/Bravo4_tex,
+                cullFace = None,
+        }
+    model Comp_M4
+    {
+                mesh = PVADSGael/GaelScopes|comp_m4,
+                texture = GunTexture/compm4_tex,
+                cullFace = None,
+        }
+    model Compact4x
+    {
+                mesh = PVADSGael/GaelScopes|Compact4x,
+                texture = GunTexture/Compact4x_tex,
+                cullFace = None,
+        }
+    model Coyote
+    {
+                mesh = PVADSGael/GaelScopes|Coyote,
+                texture = GunTexture/Coyote_tex,
+                cullFace = None,
+        }
+    model CP1
+    {
+                mesh = PVADSGael/GaelScopes|CP1,
+                texture = GunTexture/CP1_tex,
+                cullFace = None,
+        }
+    model CrimsonRedDot
+    {
+                mesh = PVADSGael/GaelScopes|CrimsonRedDot,
+                texture = GunTexture/CrimsonRedDot_tex,
+                cullFace = None,
+        }
+    model Deltapoint
+    {
+                mesh = PVADSGael/GaelScopes|Deltapoint,
+                texture = GunTexture/Deltapoint_tex,
+                cullFace = None,
+        }
+    model Elcan_M145
+    {
+                mesh = PVADSGael/GaelScopes|Elcan_M145,
+                texture = GunTexture/Elcan_M145_tex,
+                cullFace = None,
+        }
+    model Eotech
+    {
+                mesh = PVADSGael/GaelScopes|Eotech,
+                texture = GunTexture/Eotech_tex,
+                cullFace = None,
+        }
+    model Eotech_vudu
+    {
+                mesh = PVADSGael/GaelScopes|Eotech_vudu,
+                texture = GunTexture/Eotech_vudu_tex,
+                cullFace = None,
+        }
+    model Eotech_XPS3
+    {
+                mesh = PVADSGael/GaelScopes|Eotech_XPS3,
+                texture = GunTexture/Eotech_XPS3_tex,
+                cullFace = None,
+        }
+    model HAMR
+    {
+                mesh = PVADSGael/GaelScopes|HAMR,
+                texture = GunTexture/HAMR_tex,
+                cullFace = None,
+        }
+    model IRNV
+    {
+                mesh = PVADSGael/GaelScopes|IRNV,
+                texture = GunTexture/IRNV_tex,
+                cullFace = None,
+        }
+    model Kobra
+    {
+                mesh = PVADSGael/GaelScopes|Kobra,
+                texture = GunTexture/Kobra_tex,
+                cullFace = None,
+        }
+    model Leapers_UTG3
+    {
+                mesh = PVADSGael/GaelScopes|Leapers_UTG3,
+                texture = GunTexture/Leapers_UTG3_tex,
+                cullFace = None,
+        }
+    model MicroT1
+    {
+                mesh = PVADSGael/GaelScopes|MicroT1,
+                texture = GunTexture/MicroT1_tex,
+                cullFace = None,
+        }
+    model MiniRedDot
+    {
+                mesh = PVADSGael/GaelScopes|MiniRedDot,
+                texture = GunTexture/MiniRedDot_tex,
+                cullFace = None,
+        }
+    model OKP7
+    {
+                mesh = PVADSGael/GaelScopes|OKP7,
+                texture = GunTexture/OKP7_tex,
+                cullFace = None,
+        }
+    model PistolScope
+    {
+                mesh = PVADSGael/GaelScopes|PistolScope,
+                texture = GunTexture/PistolScope_tex,
+                cullFace = None,
+        }
+    model PKA
+    {
+                mesh = PVADSGael/GaelScopes|PKA,
+                texture = GunTexture/PKA_tex,
+                cullFace = None,
+        }
+    model PM_IILP
+    {
+                mesh = PVADSGael/GaelScopes|PM_IILP,
+                texture = GunTexture/PM_IILP_tex,
+                cullFace = None,
+        }
+    model RDS
+    {
+                mesh = PVADSGael/GaelScopes|RDS,
+                texture = GunTexture/RDS_tex,
+                cullFace = None,
+        }
+    model RedDot
+    {
+                mesh = PVADSGael/GaelScopes|RedDot,
+                texture = GunTexture/RedDot_tex,
+                cullFace = None,
+        }
+    model Romeo3
+    {
+                mesh = PVADSGael/GaelScopes|Romeo3,
+                texture = GunTexture/Romeo3_tex,
+                cullFace = None,
+        }
+    model RX01
+    {
+                mesh = PVADSGael/GaelScopes|RX01,
+                texture = GunTexture/RX01_tex,
+                cullFace = None,
+        }
+    model SigSauerRomeo3
+    {
+                mesh = PVADSGael/GaelScopes|SigSauerRomeo3,
+                texture = GunTexture/SigSauerRomeo3_tex,
+                cullFace = None,
+        }
+    model SLDG
+    {
+                mesh = PVADSGael/GaelScopes|SLDG,
+                texture = GunTexture/SLDG_tex,
+                cullFace = None,
+        }
+    model Spectre
+    {
+                mesh = PVADSGael/GaelScopes|Spectre,
+                texture = GunTexture/Spectre_tex,
+                cullFace = None,
+        }
+    model Springfield_longrange_scope
+    {
+                mesh = PVADSGael/GaelScopes|Springfield_longrange_scope,
+                texture = GunTexture/Springfield_sniper_tex,
+                cullFace = None,
+        }
+    model SUSAT
+    {
+                mesh = PVADSGael/GaelScopes|SUSAT,
+                texture = GunTexture/SUSAT_tex,
+                cullFace = None,
+        }
+    model TritiumSights
+    {
+            mesh = PVADSGael/GaelScopes|VenomRDS,
+            texture = GunTexture/VenomRDS_tex,
+            cullFace = None,
+        }
+    model TruBrite
+    {
+                mesh = PVADSGael/GaelScopes|TruBrite,
+                texture = GunTexture/TruBrite_tex,
+                cullFace = None,
+        }
+    model VenomRDS
+    {
+                mesh = PVADSGael/GaelScopes|VenomRDS,
+                texture = GunTexture/VenomRDS_tex,
+                cullFace = None,
+        }
+    model VortexRedDot
+    {
+                mesh = PVADSGael/GaelScopes|VortexRedDot,
+                texture = GunTexture/VortexRedDot_tex,
+                cullFace = None,
+        }
+    model x2Scope
+    {
+            mesh = PVADSGael/GaelScopes|x2Scope,
+            texture = GunTexture/x2Scope_tex,
+            cullFace = None,
+        }
+    model x4Scope
+    {
+                mesh = PVADSGael/GaelScopes|x4Scope,
+                texture = GunTexture/x4Scope_tex,
+                cullFace = None,
+        }
+    model x8Scope
+    {
+                mesh = PVADSGael/GaelScopes|x8Scope,
+                texture = GunTexture/x8Scope_tex,
+                cullFace = None,
+        }
+    model ZaMiniRDS
+    {
+                mesh = PVADSGael/GaelScopes|ZaMiniRDS,
+                texture = GunTexture/ZaMiniRDS_tex,
+                cullFace = None,
+        }
+}

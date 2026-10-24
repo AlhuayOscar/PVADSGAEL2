@@ -296,6 +296,17 @@ local function installCrosshair()
         return false
     end
 
+    local function cameraOwnsAim(playerObj)
+        if playerObj and playerObj ~= getSpecificPlayer(0) then return false end
+        if looking() then return true end
+        local aim = api()
+        if aim and type(aim.isThirdPerson) == "function" then
+            local ok, active = pcall(aim.isThirdPerson)
+            return ok and active == true
+        end
+        return false
+    end
+
     local function wrappedUpdate(playerObj)
         local guard = looking()
         if guard then setSuppress(true) end
@@ -314,7 +325,17 @@ local function installCrosshair()
     Events.OnPlayerUpdate.Add(wrappedUpdate)
 
     crosshair.alignShotToReticle = function(playerObj, state)
-        if looking() then return false end
+        -- Gael converts the centre cursor through the isometric projection
+        -- and immediately rotates AnimationPlayer. Viewpoint already owns
+        -- this direction in both camera modes, including uncaptured third
+        -- person. Returning false lets Gael use its normal unwarped shot path.
+        if cameraOwnsAim(playerObj) then
+            if PVADS and PVADS.developer then
+                print("[ViewpointGael][shot-guard] skipped isometric cursor alignment; direction=" ..
+                    tostring(playerObj and playerObj:getDirectionAngle()))
+            end
+            return false
+        end
         return originalAlign(playerObj, state)
     end
 

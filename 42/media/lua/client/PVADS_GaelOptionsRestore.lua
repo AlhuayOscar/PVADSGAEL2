@@ -187,6 +187,10 @@ local function buildGaelModOptions()
     optsGael:addKeyBind("gaelCalibKey", "Open Calibration HUD (semicolon by default)", Keyboard.KEY_SEMICOLON, "Opens the PVADS calibrator; change the key here.")
     optsGael:addTickBox("forceDeveloper", "Enable developer and calibration tools", true, "Keeps the calibrator available for development.")
 
+    optsGael:addTitle("Modelos de miras de Gael")
+    optsGael:addDescription("Control de las referencias de vidrio de PVADSGAEL2. Los modelos FBX de reemplazo todavia estan en preparacion; esta opcion controla las aperturas del render PiP.")
+    optsGael:addTickBox("scopeGlassReferences", "Usar vidrios de referencia de PVADSGAEL2 (experimental)", true, "Usa las aperturas editables de nuestras miras. Desactivar restaura los perfiles de vidrio anteriores. Requiere reiniciar la partida.")
+
     optsGael:addTitle("Recoil and Ballistic Behavior")
     optsGael:addTickBox("shotPitchRecoil", "Per-shot vertical recoil", true, "Simulates barrel recoil and muzzle rise when firing.")
     optsGael:addTickBox("shotRecoilAffectsAim", "Recoil affects point of impact", true, "Moves the shot direction along with the barrel.")
@@ -211,6 +215,7 @@ local function buildGaelModOptions()
         v.NoReferenceHoldSway = val(optsGael, "holdSway", true)
         v.SightMotion = val(optsGael, "sightMotion", true)
         v.FocusSearchBlur = val(optsGael, "focusSearchBlur", true)
+        PVADS.GaelUseGlassReferences = val(optsGael, "scopeGlassReferences", true)
         applyTrueBallisticsOptions()
         if PVADS and PVADS.Settings then
             PVADS.Settings.developer = true

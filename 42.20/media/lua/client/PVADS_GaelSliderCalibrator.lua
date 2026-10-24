@@ -26,6 +26,9 @@ local LABEL_ES = {
     ["Crop frame X"] = "Marco de recorte X",
     ["Crop frame Y"] = "Marco de recorte Y",
     ["Reticle roll"] = "Rotación de la retícula",
+    ["Glass pitch"] = "Inclinación del vidrio",
+    ["Glass yaw"] = "Giro Y del vidrio",
+    ["Glass roll"] = "Rotación del vidrio",
     ["ADS FOV"] = "FOV al apuntar", ["Pitch"] = "Pitch", ["Yaw"] = "Yaw", ["Roll"] = "Roll",
 }
 local function fieldLabel(field) return L(field[2], LABEL_ES[field[2]] or field[2]) end
@@ -54,6 +57,9 @@ local FIELDS = {
     {"pipAnchorScale", "Glass crop size", 0.01, 1},
     {"pipCropX", "Crop frame X", 0.01, 0},
     {"pipCropY", "Crop frame Y", 0.01, 0},
+    {"glassPitch", "Glass pitch", 0.25, 0},
+    {"glassYaw", "Glass yaw", 0.25, 0},
+    {"glassRoll", "Glass roll", 0.25, 0},
 }
 -- The range selector widens only spatial placement and physical sizing controls.
 -- Angles, FOV, ADS timing and zoom keep their original fine calibration span.
@@ -64,6 +70,7 @@ local WIDE_RANGE_FIELDS = {
     pipAnchorX = true, pipAnchorY = true, pipAnchorZ = true, pipAnchorScale = true, pipCropX = true, pipCropY = true,
 }
 local PAGE_OF_FIELD = {
+    glassPitch = 4, glassYaw = 4, glassRoll = 4,
     adjX = 1, adjY = 1, adjZ = 1,
     adjPitch = 2, adjYaw = 2, adjRoll = 2, relief = 2, fovMul = 2,
     opticHeight = 2, lensScale = 2, adsTime = 2,
