@@ -29,6 +29,12 @@ mesh coordinates, attachment transforms and reticle orientation are unchanged.
 Render state is restored after the custom pass. No animation or camera pose
 is changed, and the prior shot-cursor guard is retained.
 
+The physical surface becomes eligible for rendering 0.2 seconds after ADS
+animation begins, without waiting for the original 97% animation threshold.
+The existing completed-ADS visibility remains valid for faster transitions.
+The timer resets on release, invalid state or a weapon change. This is a PiP
+render-only gate; ADS alignment, firing state and precision are unchanged.
+
 The FBX child is loaded as the physical PiP surface, not as an opaque Gael disk.
 Editing the installed FBX reference geometry/UV updates the runtime surface on
 the next asset load/restart. Preserve its name and 24 perimeter UV vertices.

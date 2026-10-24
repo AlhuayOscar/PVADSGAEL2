@@ -191,6 +191,8 @@ end
 local function onWheel(wheel)
     wheel = tonumber(wheel) or 0
     if wheel == 0 or not PVADS.Settings.wheelZoom then return end
+    -- Physical optics: move the gun on Mira Y, not the camera FOV or PiP zoom.
+    if PVADS_moveScopeY and PVADS_moveScopeY(wheel) then return end
     S.zoom(wheel > 0 and 1 or -1)
 end
 

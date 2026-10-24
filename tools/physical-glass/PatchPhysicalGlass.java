@@ -9,6 +9,22 @@ public class PatchPhysicalGlass {
         ClassNode c=new ClassNode();new ClassReader(bytes).accept(c,0);
         int edits=0;
         for(MethodNode m:c.methods) {
+            if(name.equals("pvads/ADS")&&m.name.equals("steadyZoomNow")&&m.desc.equals("()F")) {
+                for(AbstractInsnNode i=m.instructions.getFirst();i!=null;i=i.getNext())if(i.getOpcode()==Opcodes.FRETURN) {
+                    m.instructions.insertBefore(i,new MethodInsnNode(Opcodes.INVOKESTATIC,"pvads/PhysicalGlass","physicalFocus","(F)F",false));edits++;break;
+                }
+            }
+            if(name.equals("pvads/ADS")&&(m.name.equals("align")||m.name.equals("fov"))) {
+                for(AbstractInsnNode i=m.instructions.getFirst();i!=null;i=i.getNext())if(i instanceof FieldInsnNode f&&f.getOpcode()==Opcodes.GETFIELD&&f.owner.equals("pvads/ADS$Profile")) {
+                    if(m.name.equals("align")&&f.name.equals("adjY")) {m.instructions.insert(i,new MethodInsnNode(Opcodes.INVOKESTATIC,"pvads/PhysicalGlass","adjustY","(F)F",false));edits++;break;}
+                    if(m.name.equals("fov")&&f.name.equals("fovMul")) {m.instructions.insert(i,new MethodInsnNode(Opcodes.INVOKESTATIC,"pvads/PhysicalGlass","physicalFov","(F)F",false));edits++;break;}
+                }
+            }
+            if(name.equals("pvads/Pip")&&m.name.equals("wanted")&&m.desc.equals("()Z")) {
+                for(AbstractInsnNode i=m.instructions.getFirst();i!=null;i=i.getNext())if(i.getOpcode()==Opcodes.IRETURN) {
+                    m.instructions.insertBefore(i,new MethodInsnNode(Opcodes.INVOKESTATIC,"pvads/PhysicalGlass","earlyWanted","(Z)Z",false));edits++;break;
+                }
+            }
             if(name.equals("pvads/ADS")&&m.name.equals("align")) {
                 for(AbstractInsnNode i=m.instructions.getFirst();i!=null;i=i.getNext()) {
                     if(i instanceof FieldInsnNode f&&f.getOpcode()==Opcodes.PUTSTATIC&&f.owner.equals("pvads/Pip")&&f.name.equals("meshObj")) {
@@ -42,7 +58,15 @@ public class PatchPhysicalGlass {
                 list.add(new FrameNode(Opcodes.F_SAME,0,null,0,null));m.instructions.insert(list);edits++;
             }
         }
-        int expected=name.equals("pvads/MeshGeo")?2:1;
+        if(name.equals("pvads/Api")) {
+            MethodNode wheel=new MethodNode(Opcodes.ACC_PUBLIC|Opcodes.ACC_STATIC,"moveScopeY","(Ljava/lang/Object;)Z",null,null);
+            AnnotationVisitor annotation=wheel.visitAnnotation("Lse/krka/kahlua/integration/annotations/LuaMethod;",true);
+            annotation.visit("name","PVADS_moveScopeY");annotation.visit("global",true);annotation.visitEnd();
+            wheel.instructions.add(new VarInsnNode(Opcodes.ALOAD,0));
+            wheel.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC,"pvads/PhysicalGlass","moveScopeY","(Ljava/lang/Object;)Z",false));
+            wheel.instructions.add(new InsnNode(Opcodes.IRETURN));c.methods.add(wheel);edits++;
+        }
+        int expected=name.equals("pvads/ADS")?4:2;
         if(edits!=expected)throw new IllegalStateException(name+" expected "+expected+" patches, got "+edits);
         ClassWriter writer=new ClassWriter(ClassWriter.COMPUTE_MAXS);c.accept(writer);return writer.toByteArray();
     }

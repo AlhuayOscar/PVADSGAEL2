@@ -54,9 +54,24 @@ public class VerifyGlassShader {
             GL20.glUniform1i(GL20.glGetUniformLocation(program,"uHasDepth"),1);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);GL11.glDrawArrays(GL11.GL_TRIANGLE_FAN,0,26);
             if(pixel(43,32)!=0)throw new IllegalStateException("Occlusion pixel check");
+            // Dot mode must occupy only 10% of the former reticle diameter.
+            GL20.glUniform1i(GL20.glGetUniformLocation(program,"uHasDepth"),0);
+            GL13.glActiveTexture(GL13.GL_TEXTURE0);GL11.glBindTexture(GL11.GL_TEXTURE_2D,tex);
+            ByteBuffer black=ByteBuffer.allocateDirect(4);black.put(new byte[]{0,0,0,-1}).flip();
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D,0,GL11.GL_RGBA8,1,1,0,GL11.GL_RGBA,GL11.GL_UNSIGNED_BYTE,black);
+            GL13.glActiveTexture(GL13.GL_TEXTURE1);int rt=GL11.glGenTextures();GL11.glBindTexture(GL11.GL_TEXTURE_2D,rt);white.rewind();
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D,0,GL11.GL_RGBA8,1,1,0,GL11.GL_RGBA,GL11.GL_UNSIGNED_BYTE,white);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D,GL11.GL_TEXTURE_MIN_FILTER,GL11.GL_NEAREST);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D,GL11.GL_TEXTURE_MAG_FILTER,GL11.GL_NEAREST);
+            GL20.glUniform1i(GL20.glGetUniformLocation(program,"uRet"),1);
+            GL20.glUniform1i(GL20.glGetUniformLocation(program,"uRetMode"),2);
+            GL20.glUniform4f(GL20.glGetUniformLocation(program,"uRetColor"),1,0,0,1);
+            GL20.glUniform4f(GL20.glGetUniformLocation(program,"uRetUV"),0,0,1,1);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);GL11.glDrawArrays(GL11.GL_TRIANGLE_FAN,0,26);
+            if(pixel(43,32)<200||pixel(43,38)!=0)throw new IllegalStateException("10 percent dot footprint check");
             int err=GL11.glGetError();if(err!=0)throw new IllegalStateException("GL error "+err);
             System.out.println("PhysicalGlass vertex/fragment shaders compiled and linked on "+GL11.glGetString(GL11.GL_RENDERER));
-            System.out.println("GPU pixel tests OK: UV surface, aperture, transformed plane, depth occlusion.");
+            System.out.println("GPU pixel tests OK: UV surface, aperture, transformed plane, depth occlusion, 10% dot.");
         } finally {GLFW.glfwDestroyWindow(window);GLFW.glfwTerminate();}
     }
     static int pixel(int x,int y){ByteBuffer b=ByteBuffer.allocateDirect(4);GL11.glReadPixels(x,y,1,1,GL11.GL_RGBA,GL11.GL_UNSIGNED_BYTE,b);return b.get(0)&255;}

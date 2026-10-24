@@ -33,6 +33,31 @@ public final class PhysicalGlass {
     private static long lastNote;
     private static String lastBound = "";
     private static boolean failed;
+    private static long earlyStartNs;
+    private static Object earlyWeapon;
+    private static final Map<String,Float> eyeDistances = new java.util.concurrent.ConcurrentHashMap<>();
+    private static boolean physicalScope() {
+        return enabled && !failed && ADS.P!=null && ADS.P.mode==2 && ADS.S.pip && ownedKey!=null;
+    }
+    private static String distanceKey(){return ADS.P.weaponId+"|"+ADS.P.opticIdStr;}
+    public static boolean moveScopeY(Object direction) {
+        if(!physicalScope() || !VP.firstPerson() || !ADS.want || ADS.suspended || Presence.adsBlocked())return false;
+        float dir=(float)Api.num(direction,0);
+        if(dir==0)return false;
+        String key=distanceKey();
+        float offset=eyeDistances.getOrDefault(key,0f);
+        // Same axis as Mira Y. Wheel up brings the optic closer to the eye.
+        offset=distanceStep(offset,dir);
+        eyeDistances.put(key,offset);
+        note("wheel Mira Y offset="+offset+" (session-only; PiP magnification unchanged)");
+        return true;
+    }
+    public static float adjustY(float base){return base+(physicalScope()?eyeDistances.getOrDefault(distanceKey(),0f):0f);}
+    public static float physicalFov(float original){return physicalScope()?1f:original;}
+    public static float physicalFocus(float original){return physicalScope()?1f:original;}
+    static float distanceStep(float offset,float dir){
+        return Math.max(-0.075f,Math.min(0.075f,offset+(dir>0?0.005f:-0.005f)));
+    }
     private static final Map<String,Field> PIP_FIELDS = new HashMap<>();
     private static final class Surface {
         final ModelInstance gun, optic;
@@ -58,6 +83,19 @@ public final class PhysicalGlass {
         if(table==null)return;
         pitch=Api.f(table,"glassPitch",0); yaw=Api.f(table,"glassYaw",0); roll=Api.f(table,"glassRoll",0);
         enabled=Api.f(table,"physicalGlass",1)>0.5f;
+    }
+    /** Render-only visibility: leave ADS.lensUp, gun pose and firing logic alone. */
+    public static boolean earlyWanted(boolean original) {
+        boolean eligible=enabled && !failed && !Pip.broken && ADS.P!=null && ADS.P.valid && ADS.P.mode==2
+            && ADS.S.enabled && ADS.S.pip && ADS.want && !ADS.suspended
+            && VP.firstPerson() && !Presence.adsBlocked() && ADS.t>0;
+        boolean elapsed=visibilityDelay(eligible,ADS.lastWeaponInst,System.nanoTime());
+        return original || (eligible && elapsed && surface!=null);
+    }
+    static boolean visibilityDelay(boolean eligible,Object weapon,long now) {
+        if(!eligible || weapon==null){earlyStartNs=0;earlyWeapon=null;return false;}
+        if(earlyStartNs==0 || earlyWeapon!=weapon){earlyStartNs=now;earlyWeapon=weapon;}
+        return now-earlyStartNs>=200_000_000L;
     }
     public static boolean capturePath(String path,String ignored) {
         String p=path.toLowerCase(Locale.ROOT);
@@ -250,7 +288,7 @@ public final class PhysicalGlass {
                 // Correct the mirrored PiP image only; retain mesh UV and reticle orientation.
                 vec2 imageUV=vec2(1.0-uv.x,uv.y);
                 vec3 c=texture(uTex,(vec2(0.5)+(imageUV-0.5)*uImageScale)*uPic).rgb;
-                vec2 q=(d-uRetOffset)/0.98;
+                vec2 q=(d-uRetOffset)/(uRetMode==2?0.098:0.98);
                 q=mat2(cos(uRetRoll),sin(uRetRoll),-sin(uRetRoll),cos(uRetRoll))*q;
                 if(uRetMode!=0 && abs(q.x)<=1.0 && abs(q.y)<=1.0){
                     vec2 f=vec2(q.x*0.5+0.5,0.5-q.y*0.5);

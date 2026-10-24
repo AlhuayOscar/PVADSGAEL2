@@ -1,6 +1,6 @@
 """Preserve FBX properties verbatim; append editable child glass meshes."""
 from pathlib import Path
-import struct, sys, runpy, contextlib, io, re, hashlib, json
+import struct, sys, runpy, contextlib, io, re, hashlib, json, math
 
 ROOT = Path(r'C:\Users\carlos\Downloads\GaelScopesModels')
 REPO = Path(r'C:\Users\carlos\Documents\Codex\2026-10-18\fijate-en-github-la-ultima-rama\work\PVADSGAEL2-latest')
@@ -71,6 +71,13 @@ original_objects = list(objects[3])
 ids = [values(n)[0] for n in original_objects if n[1] and isinstance(values(n)[0], int)]
 next_id = max(ids) + 100
 manifest = []
+# Closed tubular optics: aperture is circular in model space. Open reflex and
+# holographic windows are deliberately left unchanged, not guessed to be round.
+CIRCULAR_OPTICS = set('''1P78 1PN93_4 ACOGx4 ATN_Thor Accupoint Acog_TA648
+Acog_ecos BallisticScope Bravo4 CP1 CZ-95G CZ-LM4 Compact4x Elcan_M145
+Eotech_vudu HAMR IRNV Leapers_UTG3 MicroT1 PKA PKA-S PKS-07 PM_IILP
+POSP POSP4x24 PistolScope RDS SLDG SUSAT Spectre Springfield_longrange_scope
+TruBrite Zeiss4x25 comp_m4 scopex24 x2Scope x4Scope x8Scope'''.split())
 for original in original_objects:
     if original[0] != b'Model':
         continue
@@ -96,6 +103,13 @@ for original in original_objects:
     cz = sum(p[2] for p in points)/len(points)
     rx = max(abs(p[0]-cx) for p in points)
     rz = max(abs(p[2]-cz) for p in points)
+    if name in CIRCULAR_OPTICS:
+        # Inscribe in the preliminary bounds: never expand through the housing.
+        radius = min(rx, rz)
+        cy = sum(p[1] for p in points)/len(points)
+        points = [(cx+radius*math.cos(2*math.pi*i/24),cy,
+                   cz+radius*math.sin(2*math.pi*i/24)) for i in range(24)]
+        rx = rz = radius
     uv = [v for p in points for v in ((p[0]-cx)/(2*rx)+0.5, (p[2]-cz)/(2*rz)+0.5)]
     uv_indices = [i if i >= 0 else -i-1 for i in faces]
     # Separate geometry: never bake an opaque disk into the housing mesh.
@@ -118,7 +132,7 @@ for original in original_objects:
     ]))
     connections[3].extend([node('C', ['OO', ('L',gid), ('L',mid)]), node('C', ['OO', ('L',mid), ('L',props[0])])])
     manifest.append({'optic':name, 'reference':name+'_Vidrio_Referencia', 'vertices':points,
-                     'calibration':'preliminary', 'parentModelId':props[0]})
+                     'calibration':'preliminary', 'shape':'circle' if name in CIRCULAR_OPTICS else 'unchanged', 'parentModelId':props[0]})
 
 # Update informational object counts to match the appended objects.
 definitions = next(n for n in tree if n[0] == b'Definitions')
