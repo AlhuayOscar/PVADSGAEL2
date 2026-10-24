@@ -1,2 +1,0 @@
-
-ItemBodyLocation.register("pvg:slingfront")

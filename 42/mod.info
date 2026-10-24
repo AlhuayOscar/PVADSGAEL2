@@ -1,6 +1,6 @@
 name=Viewpoint Gael Aim + ADS
 id=ViewpointGaelCompat
-description=Updated PVADS integration for Viewpoint and Gael Gun Store. ADS, recoil, ballistics and advanced throwable systems are integrated in this replacement. Do not enable the separate Project Viewpoint ADS, Viewpoint Advanced Throwables or Viewpoint True Ballistics mods alongside it.
+description=Updated PVADS integration for Viewpoint and Gael Gun Store. ADS, recoil, ballistics and advanced throwable systems are integrated in this replacement. Do not enable the separate Project Viewpoint ADS, Viewpoint Advanced Throwables or Viewpoint True Ballistics mods alongside it. Credits to Bluesky for the original ADS foundation.
 require=GaelGunStore_B42,Viewpoint,\ZombieBuddy
 incompatible=ProjectViewpointADS,ViewpointAdvancedThrowables,ViewpointTrueBallistics
 loadModAfter=Viewpoint,GaelGunStore_B42,ZombieBuddy

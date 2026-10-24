@@ -616,10 +616,3 @@ option RebuildingKnoxDemo.HudReactivateColor
 }
 
 
-option PVADSGAEL2.IntegratedSling
-{
-    type = boolean,
-    default = false,
-    page = PVADSGAEL2,
-    translation = PVADSGAEL2_IntegratedSling,
-}

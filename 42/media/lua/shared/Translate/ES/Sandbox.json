@@ -133,7 +133,5 @@
   "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep": "Barra: unidades por cada 5 %% de color",
   "Sandbox_RebuildingKnoxDemo_HudUnitsPerColorStep_tooltip": "Por cada incremento completo de esta cantidad por encima del minimo, el icono recupera 5 %% de saturacion. Con 5: 0 gris, 5 al 5 %%, 10 al 10 %%, 100 a color completo.",
   "Sandbox_RebuildingKnoxDemo_HudReactivateColor": "Barra: reactivar color segun recursos",
-  "Sandbox_RebuildingKnoxDemo_HudReactivateColor_tooltip": "Activado: recupera color en pasos de 5 %% segun cantidades. Desactivado: los iconos permanecen grises; los valores siguen actualizandose. Los datos sin medir, como moral, permanecen grises.",
-  "Sandbox_PVADSGAEL2_IntegratedSling": "Sling integrado PVADSGael (experimental)",
-  "Sandbox_PVADSGAEL2_IntegratedSling_tooltip": "Activa la ranura y fabricación del sling propio en multijugador. Requiere reiniciar y el JAR correspondiente."
+  "Sandbox_RebuildingKnoxDemo_HudReactivateColor_tooltip": "Activado: recupera color en pasos de 5 %% segun cantidades. Desactivado: los iconos permanecen grises; los valores siguen actualizandose. Los datos sin medir, como moral, permanecen grises."
 }

@@ -1,12 +1,7 @@
 # Next integrations requested by Carlos — 2026-10-24
 
-Checkpoint first; integrations below are not yet implemented.
-
-1. TacHold integration for firearm handling/aiming poses.
-2. Real Crouching Stance integration for firing while crouched.
-3. An integrated sling system inspired by the Workshop sling mod, using
-   our own models and textures. Identify the exact reference mod before
-   implementation; do not assume permission to copy third-party code/assets.
+Optional hold, sling and stance integrations cancelled and removed at Carlos's
+request. Keep the ADS foundation and its original attribution.
 
 Preserve the stable recoil, physical optic glass, calibrated profiles and
 shot-cursor guard. Verify transition poses, firing, first/third-person views
