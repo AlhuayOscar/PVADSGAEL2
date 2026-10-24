@@ -174,8 +174,9 @@ end
 function PVADS_GaelIronFocus_strengthMultiplier(player)
     local strength = tonumber(player and player:getPerkLevel(Perks.Strength)) or 5
     strength = math.max(0, math.min(10, strength))
-    if strength >= 5 then return 0.60 ^ (strength - 5) end
-    return 1 + (5 - strength) * 0.40
+    local previous = strength >= 5 and 0.60 ^ (strength - 5)
+        or (1 + (5 - strength) * 0.40)
+    return previous / 1.50 -- 50% more control at every level, not 50% less recoil.
 end
 
 function PVADS_GaelIronFocus_enduranceMultiplier(player)
@@ -869,7 +870,7 @@ function PVADS_GaelIronFocus_publishRecoilAim(profile, view, dynamicActive)
     local aimLogNow = getTimestampMs()
     if not PVADS_GaelIronFocus_lastAimLogAt or aimLogNow - PVADS_GaelIronFocus_lastAimLogAt >= 1000 then
         PVADS_GaelIronFocus_lastAimLogAt = aimLogNow
-        print(string.format("[PVADSGAEL2][aim] weapon=%s profile=(%.2f,%.2f) ray=(%.2f,%.2f) autoPitchReverse=%s scale=%.2f", tostring(profile.weaponId), dYaw, dPitch, totalYaw, totalPitch, tostring(automatic), ANGULAR_DEVIATION_SCALE))
+        if PVADS.GaelShotDiagnostics then print(string.format("[PVADSGAEL2][aim] weapon=%s profile=(%.2f,%.2f) ray=(%.2f,%.2f) autoPitchReverse=%s scale=%.2f", tostring(profile.weaponId), dYaw, dPitch, totalYaw, totalPitch, tostring(automatic), ANGULAR_DEVIATION_SCALE)) end
     end
 
     if publish then
@@ -1003,13 +1004,7 @@ function PVADS_GaelIronFocus_updateIronFocus(player)
     end
     local baseFov = tonumber(profile.fovMul) or 0.93
     local desiredFocusFov = nil
-    if focusAvailable then
-        if wheelFocused == true then
-            desiredFocusFov = math.max(MIN_FOV_MULTIPLIER, baseFov - 0.30)
-        elseif wheelFocused == nil and iron and crouchEnabled and player:isSneaking() then
-            desiredFocusFov = math.max(MIN_FOV_MULTIPLIER, baseFov * multiplier)
-        end
-    end
+    -- Focus stabilizes aim only: no FOV change and no enlargement of glass.
     local targetFov = desiredFocusFov or baseFov
     if profile ~= lastProfile then
         focusFovTarget, focusFovFrom, focusFovCurrent, focusFovTransitionAt =
@@ -1023,16 +1018,15 @@ function PVADS_GaelIronFocus_updateIronFocus(player)
     local focusProgress = math.min(1, math.max(0,
         (focusNow - focusFovTransitionAt) / FOCUS_ZOOM_TRANSITION_MS))
     focusFovCurrent = focusFovFrom + (focusFovTarget - focusFovFrom) * PVADS_GaelIronFocus_smoothstep(focusProgress)
-    local focusFov = (desiredFocusFov or focusProgress < 1) and focusFovCurrent or nil
-    local targetLensScale = desiredFocusFov and FOCUS_PIP_LENS_SCALE or 1.0
+    local focusFov = nil
+    local targetLensScale = 1.0
     if targetLensScale ~= focusLensTarget then
         focusLensFrom = focusLensCurrent or 1.0
         focusLensTarget, focusLensTransitionAt = targetLensScale, focusNow
     end
     local lensProgress = math.min(1, math.max(0,
         (focusNow - focusLensTransitionAt) / FOCUS_ZOOM_TRANSITION_MS))
-    focusLensCurrent = focusLensFrom + (focusLensTarget - focusLensFrom)
-        * PVADS_GaelIronFocus_smoothstep(lensProgress)
+    focusLensCurrent = 1.0
     local swayActive, now = PVADS_GaelIronFocus_updateWeaponSway(player, controller, profile)
     now = now or getTimestampMs()
     local regripActive = PVADS_GaelIronFocus_updateReleaseRegrip(player, controller, now)
@@ -1362,15 +1356,17 @@ function PVADS_GaelIronFocus_applyShotRecoil(player, weapon, shotAt, profile)
                     amount, yawAmount, direction, yawDirection)
             end
             local reverseSetting = tonumber(profile and profile.recoilPitchReverse)
-            -- Automatic firearms default to reversed pitch and yaw; a saved 0
-            -- is an explicit per-profile opt-out, while 1 forces it on.
-            local reversePitchYaw = reverseSetting == 1 or (reverseSetting == nil and automatic)
+            -- Reverse only on explicit request. Automatic fire must not invert
+            -- the normal upward barrel deviation by default.
+            local reversePitchYaw = reverseSetting == 1
             if reversePitchYaw then
                 direction = -direction
                 yawDirection = -yawDirection
             end
             local gripScale = PVADS_GaelGrip.recoilMultiplier(weapon)
             local strengthScale = PVADS_GaelIronFocus_strengthMultiplier(player)
+            local aiming = math.max(0, math.min(10, tonumber(player:getPerkLevel(Perks.Aiming)) or 0))
+            strengthScale = strengthScale / (1 + 0.08 * aiming)
             amount = amount * strengthScale
             yawAmount = yawAmount * strengthScale
             local pitchTarget = amount * SHOT_RECOIL_SCALE * gripScale
@@ -1379,7 +1375,7 @@ function PVADS_GaelIronFocus_applyShotRecoil(player, weapon, shotAt, profile)
                 or math.max(pitchTarget, direction * recoilPitch))
             recoilPeakYaw = yawDirection * (longBurstBonus > 0 and yawTarget
                 or math.max(yawTarget, yawDirection * recoilYaw))
-            print(string.format("[PVADSGAEL2][recoil] shot weapon=%s burst=%d pitch=%.2f yaw=%.2f reversePitchYaw=%s strength=%.2f", tostring(weapon:getFullType()), burstShotCount, recoilPeakPitch, recoilPeakYaw, tostring(reversePitchYaw), strengthScale))
+            if PVADS.GaelShotDiagnostics then print(string.format("[PVADSGAEL2][recoil] shot weapon=%s burst=%d pitch=%.2f yaw=%.2f reversePitchYaw=%s strength=%.2f", tostring(weapon:getFullType()), burstShotCount, recoilPeakPitch, recoilPeakYaw, tostring(reversePitchYaw), strengthScale)) end
 end
 
 function PVADS_GaelIronFocus_onWeaponFired(player, weapon)
@@ -1398,7 +1394,7 @@ function PVADS_GaelIronFocus_onWeaponFired(player, weapon)
             + (tonumber(PVADS.GaelDeltaY) or 0))
         local sightYaw = math.deg(math.atan((tonumber(PVADS.GaelDeltaX) or 0) / relief))
         local sightPitch = math.deg(math.atan((tonumber(PVADS.GaelDeltaZ) or 0) / relief))
-        print(string.format("[PVADSGAEL2][sight-aim] shot weapon=%s xyz=(%.4f,%.4f,%.4f) angle=(%.2f,%.2f)", tostring(weapon:getFullType()), tonumber(PVADS.GaelDeltaX) or 0, tonumber(PVADS.GaelDeltaY) or 0, tonumber(PVADS.GaelDeltaZ) or 0, sightYaw, sightPitch))
+        if PVADS.GaelShotDiagnostics then print(string.format("[PVADSGAEL2][sight-aim] shot weapon=%s xyz=(%.4f,%.4f,%.4f) angle=(%.2f,%.2f)", tostring(weapon:getFullType()), tonumber(PVADS.GaelDeltaX) or 0, tonumber(PVADS.GaelDeltaY) or 0, tonumber(PVADS.GaelDeltaZ) or 0, sightYaw, sightPitch)) end
         PVADS_GaelIronFocus_stopManualFocus(shotAt) -- Firing cancels manual focus and starts its cooldown.
         if focusBar then focusBar:setVisible(false) end
         focusSwayScale = 1.00
@@ -1413,4 +1409,4 @@ Events.OnKeyPressed.Add(PVADS_GaelIronFocus_onFocusKey)
 Events.OnWeaponSwingHitPoint.Add(PVADS_GaelIronFocus_onWeaponFired)
 if Events.OnRightMouseDown then Events.OnRightMouseDown.Add(PVADS_GaelIronFocus_onRightMouseDown) end
 if Events.OnRightMouseUp then Events.OnRightMouseUp.Add(PVADS_GaelIronFocus_onRightMouseUp) end
-print("[PVADSGAEL2][recoil] PVADS_GaelIronFocus loaded; weapon-shot diagnostics enabled")
+print("[PVADSGAEL2][recoil] PVADS_GaelIronFocus loaded; per-shot diagnostics off by default")

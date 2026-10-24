@@ -321,7 +321,7 @@ end
 local function recoilReverseEnabled(values)
     local setting = values and tonumber(values.recoilPitchReverse)
     if setting ~= nil then return setting == 1 end
-    return selectedWeaponIsAutomatic()
+    return false -- Recoil inversion is explicit, never implied by automatic fire.
 end
 
 -- Keep explicit resets distinguishable from profiles that went missing in

@@ -54,7 +54,7 @@ public final class PhysicalGlass {
     }
     public static float adjustY(float base){return base+(physicalScope()?eyeDistances.getOrDefault(distanceKey(),0f):0f);}
     public static float physicalFov(float original){return physicalScope()?1f:original;}
-    public static float physicalFocus(float original){return physicalScope()?1f:original;}
+    public static float physicalFocus(float original){return ADS.P!=null && ADS.P.mode!=0?1f:original;}
     static float distanceStep(float offset,float dir){
         return Math.max(-0.075f,Math.min(0.075f,offset+(dir>0?0.005f:-0.005f)));
     }
